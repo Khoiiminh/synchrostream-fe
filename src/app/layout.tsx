@@ -21,12 +21,18 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="en">
-            <head>
-                <ColorSchemeScript defaultColorScheme='dark' />     {/** prevent theme flashing (when a dark mode site flickers white for a split second on load) */}
-            </head>
+        <html lang="en" suppressHydrationWarning>
+            <head><ColorSchemeScript defaultColorScheme='dark' /></head>    
             <body className='bg-slate-950 text-slate-50 antialiased'>
-                <StoreProvider>
+                <StoreProvider>   {/**The `children` being passed into `StoreProvider` is the entire`MantineProvider` and everything inside it */}
+                    {/** This is what is happening "under the hood"
+                        StoreProvider({ 
+                            children: MantineProvider({ 
+                                theme: theme, 
+                                children: PageContent 
+                            }) 
+                        }); 
+                    */}
                     <MantineProvider theme={theme} defaultColorScheme='dark'>   {/**Allows all child components to access Mantine's theme variables and styling logic */}
                         {children}
                     </MantineProvider>

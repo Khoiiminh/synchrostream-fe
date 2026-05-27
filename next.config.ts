@@ -22,7 +22,11 @@ const nextConfig: NextConfig = {
         destination: 'http://localhost:7000/v1/:path*'
       }
     ]
-  }
+  },
+  allowedDevOrigins: [
+    'localhost',
+    '192.168.1.4'
+  ]
 };
 
 export default nextConfig;
