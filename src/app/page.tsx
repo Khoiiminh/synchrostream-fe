@@ -1,17 +1,19 @@
 import { Container, Title, Text, Stack } from '@mantine/core';
 import { LandingHeroActions } from '@/components/landing/LandingHeroActions';
 import { HeaderSignInButton } from '@/components/landing/HeaderSignInButton';
+import { SessionInterceptor } from '@/components/auth/SessionInterceptor';
 
 export default function Home() {
   return (
     <div className="relative min-h-screen bg-[#000000] flex flex-col justify-between overflow-hidden">
       
-      {/* PLACEHOLDER NOTE FOR BACKGROUND IMAGES:
-          Inject your absolute backdrop cinematic element or background slider engine here inside this div wrapper.
-      */}
+      {/* Invisible client interceptor logic running on page mount */}
+      <SessionInterceptor />
+      
+      {/* Backdrop cinematic ambient glow */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-40 bg-linear-to-b from-[#000000] via-[#323379]/20 to-[#000000]" />
 
-      {/* Header Container Area - Static Server Rendered with Client Leaf Node */}
+      {/* Header Container Area */}
       <header className="relative z-10 w-full px-6 py-4 sm:px-12 flex justify-between items-center bg-linear-to-b from-black/80 to-transparent">
         <Title order={2} className="text-[#6366F1] font-black tracking-wider text-2xl sm:text-3xl uppercase">
           SynchroStream
@@ -19,7 +21,7 @@ export default function Home() {
         <HeaderSignInButton />
       </header>
 
-      {/* Main Hero Callout Container - Static Text Layout + Hydrated Leaf Actions */}
+      {/* Main Hero Callout Container */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-4 max-w-4xl mx-auto">
         <Stack gap="xl">
           <Title className="text-4xl sm:text-6xl font-black text-white leading-tight tracking-tight">
@@ -34,7 +36,7 @@ export default function Home() {
         </Stack>
       </main>
 
-      {/* Secondary Feature Sections - 100% Server Optimized Pre-rendered Block */}
+      {/* Secondary Feature Sections */}
       <section className="relative z-10 bg-[#000000] border-t-8 border-zinc-900 py-16 px-6">
         <Container size="lg">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">

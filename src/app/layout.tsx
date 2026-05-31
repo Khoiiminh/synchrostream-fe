@@ -19,20 +19,21 @@ export const metadata = {
     description: 'Watch content in absolute real-time synchronization with peers.', 
 }
 
+/** This is what is happening "under the hood"
+    StoreProvider({ 
+        children: MantineProvider({ 
+            theme: theme, 
+            children: PageContent 
+        }) 
+    }); 
+*/
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="en" suppressHydrationWarning>
             <head><ColorSchemeScript defaultColorScheme='dark' /></head>    
-            <body className='bg-slate-950 text-slate-50 antialiased'>
+            <body className='bg-slate-950 text-slate-50 antialiased' suppressHydrationWarning={true}>
                 <StoreProvider>   {/**The `children` being passed into `StoreProvider` is the entire`MantineProvider` and everything inside it */}
-                    {/** This is what is happening "under the hood"
-                        StoreProvider({ 
-                            children: MantineProvider({ 
-                                theme: theme, 
-                                children: PageContent 
-                            }) 
-                        }); 
-                    */}
                     <MantineProvider theme={theme} defaultColorScheme='dark'>   {/**Allows all child components to access Mantine's theme variables and styling logic */}
                         {children}
                     </MantineProvider>
