@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { clearCredentials, setProfileData } from '@/store/slices/authSlice';
 import { useGetMeQuery } from '@/store/services/authApi';
+import { DashboardLogoutButton } from './DashboardLogoutButton';
 
 interface BaseWorkspaceProps {
   roleScope: 'User' | 'Admin';
@@ -16,6 +17,7 @@ export function BaseWorkspace({ roleScope }: BaseWorkspaceProps) {
   const router = useRouter();
   const cachedUsername = useAppSelector((state) => state.auth.username);
 
+  // refetchOnMountOrArgChange ensures we run into the JwtStrategy blacklist check on every dashboard mount
   const { data: response, isLoading, isError } = useGetMeQuery(undefined, {
     refetchOnMountOrArgChange: true,
   });
@@ -26,12 +28,6 @@ export function BaseWorkspace({ roleScope }: BaseWorkspaceProps) {
     }
   }, [response, dispatch]);
 
-  const handleLogout = () => {
-    dispatch(clearCredentials());
-    localStorage.removeItem('access_token');
-    router.push('/'); // Safe programmatic route change
-  };
-
   if (isLoading) {
     return (
       <Center className="h-64">
@@ -40,7 +36,8 @@ export function BaseWorkspace({ roleScope }: BaseWorkspaceProps) {
     );
   }
 
-  if (isError || (!isLoading && !response?.success && !cachedUsername)) {
+  // If the token is blacklisted in Redis Blacklist hosting, useGetMeQuery throws an error
+  if (isError || (response && !response.success)) {
     return (
       <Center className="h-64">
         <Stack gap="sm" align="center">
@@ -73,12 +70,7 @@ export function BaseWorkspace({ roleScope }: BaseWorkspaceProps) {
         <div className="h-px bg-zinc-900" />
 
         <div className="flex justify-end">
-          <Button 
-            onClick={handleLogout} 
-            className="bg-transparent hover:bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 transition-colors"
-          >
-            Logout
-          </Button>
+          <DashboardLogoutButton />
         </div>
       </Stack>
     </Container>

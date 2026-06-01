@@ -91,6 +91,29 @@ export const authApi = createApi({
                 method: 'GET'
             }),
         }),
+
+        logout: builder.mutation<{ message: string }, void>({
+            query: () => ({
+                url: 'logout',
+                method: 'POST',
+            }),
+        }),
+
+        requestPasswordReset: builder.mutation<{ success: boolean, message: string }, { email: string }>({
+            query: (body) => ({
+                url: '/password-reset/request',
+                method: 'POST',
+                body,
+            }),
+        }),
+
+        confirmPasswordReset: builder.mutation<{ success: boolean, message: string }, { token: string, newPassword: string}> ({
+            query: (body) => ({
+                url: '/password-reset/confirm',
+                method: 'POST',
+                body
+            }),
+        }),
     }),
 });
 
@@ -102,4 +125,12 @@ export const authApi = createApi({
 
 // Calling the function:
 // const response = await login({ email: '...', password: '...' }).unwrap();
-export const { useRegisterUserMutation, useLoginUserMutation, useGetMeQuery, useLazyGetMeQuery } = authApi;
+export const { 
+    useRegisterUserMutation, 
+    useLoginUserMutation, 
+    useGetMeQuery, 
+    useLazyGetMeQuery, 
+    useLogoutMutation,
+    useRequestPasswordResetMutation,
+    useConfirmPasswordResetMutation, 
+} = authApi;
