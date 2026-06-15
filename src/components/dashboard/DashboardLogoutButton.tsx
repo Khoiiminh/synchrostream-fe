@@ -1,7 +1,6 @@
 'use client'
 
 import { useLogoutMutation } from "@/store/services/authApi";
-import { useRouter } from "next/navigation"
 import { useState } from "react";
 import { LoadingPage } from "../commons/LoadingPage";
 import { Button } from "@mantine/core";

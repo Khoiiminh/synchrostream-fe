@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { Button, Container, Title, Text, Stack, Center, Loader } from '@mantine/core';
 import { useRouter } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { clearCredentials, setProfileData } from '@/store/slices/authSlice';
+import { setProfileData } from '@/store/slices/authSlice';
 import { useGetMeQuery } from '@/store/services/authApi';
 import { DashboardLogoutButton } from './DashboardLogoutButton';
 

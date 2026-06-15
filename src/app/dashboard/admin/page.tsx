@@ -1,5 +1,5 @@
 import { Title } from '@mantine/core';
-import { BaseWorkspace } from '@/components/dashboard/BaseWorkspace';
+import { AdminBaseWorkspace } from '@/components/dashboard/AdminBaseWorkspace';
 
 export const metadata = {
   title: 'Admin Command Telemetry | SynchroStream',
@@ -15,7 +15,7 @@ export default function AdminDashboardPage() {
       </header>
 
       <main className="flex-1 flex flex-col justify-center">
-        <BaseWorkspace roleScope="Admin" />
+        <AdminBaseWorkspace roleScope="Admin" />
       </main>
     </div>
   );

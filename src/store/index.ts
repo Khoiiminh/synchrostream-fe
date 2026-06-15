@@ -1,6 +1,8 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { authApi } from "./services/authApi";
 import authReducer from '@/store/slices/authSlice';
+import ingestionReducer from '@/store/slices/ingestionSlice';
+import { adminMediaApi } from "./services/adminMediaApi";
 
 /**
  * CENTRAL REDUX SETUP
@@ -14,6 +16,8 @@ export const store = configureStore({
     reducer: {
         auth: authReducer,  // handles the local state (the token and login status from `authSlice`)
 
+        ingestion: ingestionReducer,
+
         // Dynamically adds the RTK Query cache management logic
         // It returns: A combined state object like:
         // { 
@@ -26,6 +30,7 @@ export const store = configureStore({
         //      } 
         //  }
         [authApi.reducerPath]: authApi.reducer, // Using [authApi.reducerPath] ensures the key in the store matches the reducerPath ("authApi") that is defined in your API file.
+        [adminMediaApi.reducerPath]: adminMediaApi.reducer,
     },
 
     // A "pipeline" that actions pass through before hitting the store
@@ -33,7 +38,9 @@ export const store = configureStore({
     // It takes the standard Redux middleware (which handles things like logs or async calls) and 
     // "tacks on" the `authApi` logic at the end.
     middleware: (getDefaultMiddleware) => 
-        getDefaultMiddleware().concat(authApi.middleware),
+        getDefaultMiddleware({ serializableCheck: false })
+            .concat(authApi.middleware)
+            .concat(adminMediaApi.middleware),
 });
 
 // A dynamic TypeScript type representing the entire state of the store
