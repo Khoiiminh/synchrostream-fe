@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { useLogoutMutation, useGetMeQuery } from "@/store/services/authApi";
+import { useLogoutMutation, useGetMeQuery, authApi } from "@/store/services/authApi";
 import { 
     useInitiateUploadMutation, 
     useUploadPartMutation, 
@@ -22,6 +22,9 @@ import {
     IconServer
 } from '@tabler/icons-react'; 
 import { io, Socket } from 'socket.io-client';
+import { LoadingPage } from '../commons/LoadingPage';
+import { createPortal } from 'react-dom';
+import { clearCredentials } from '@/store/slices/authSlice';
 
 // Strict Type Enumeration matching backend states
 type CloudTranscodeStatus = 'IDLE' | 'PROCESSING' | 'AVAILABLE' | 'FAILED';
@@ -40,7 +43,6 @@ interface IngestionPipelineResult {
 }
 
 export function AdminControlCenterLeaf() {
-    const router = useRouter();
     const dispatch = useAppDispatch();
     
     // UI Layout Presentation States
@@ -56,7 +58,8 @@ export function AdminControlCenterLeaf() {
 
     // Auth Actions
     const { data: userProfile } = useGetMeQuery();
-    const [logoutTrigger] = useLogoutMutation();
+    const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
+    const [isClearing, setIsClearing] = useState(false);
 
     // API Mutations
     const [initiateUpload] = useInitiateUploadMutation();
@@ -110,15 +113,32 @@ export function AdminControlCenterLeaf() {
     });
 
     const handleLogout = async () => {
-        try {
-            await logoutTrigger().unwrap();
-            localStorage.removeItem('access_token');
-            router.push('/');
-        } catch {
-            localStorage.removeItem('access_token');
-            router.push('/');
+            try {
+                setIsClearing(true);
+                await logout().unwrap();
+            } catch (error) {
+                console.warn('Backend revocation completed or token was already stale');
+            } finally {
+                // Purge all RTK cache states across  the auth module
+                dispatch(authApi.util.resetApiState());
+    
+                // Clear the slice state 
+                dispatch(clearCredentials());
+    
+                localStorage.removeItem('access_token');
+                window.location.href = '/';
+            }
+        };
+    
+        if (isClearing || isLoggingOut) {
+            if (typeof window !== 'undefined') {
+                return createPortal(
+                    <LoadingPage message="Severing secure session lines safely..." />,
+                    document.body
+                );
+            }
+            return null;
         }
-    };
 
     const runIngestionPipeline = async (values: typeof ingestionForm.values) => {
         if (!values.file) return;

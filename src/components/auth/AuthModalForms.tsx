@@ -78,7 +78,11 @@ export function AuthModalForms({ onSuccess }: AuthModalFormProps) {
                 onSuccess();
 
                 // Safe Next.js transition wrapper pushing to /dashboard/user or /dashboard/admin
-                router.push(`/dashboard/${userRole}`);
+                if (userRole === 'admin') {
+                    router.push('/dashboard/admin');
+                } else {
+                    router.push('/catalog');
+                }
             }
         } catch (err: unknown) {
 

@@ -43,20 +43,18 @@ export function SessionInterceptor() {
   useEffect(() => {
     if (!state.hasToken || isFetching) return;
 
-    if (response?.success && response?.data?.role) {
-      const userRole = response.data.role.toLowerCase();
+    if (response?.success) {
 
       // Signal that the platform is in the redirect phase
       setState({ isRedirecting: true });
-      
-      const timeoutId = setTimeout(() => {
-        router.push(`/dashboard/${userRole}`);
-      }, 2000);
 
-      // Clean up the timer AND reset the redirection flag if the user navigates away or hits back
-      return () => {
-        clearTimeout(timeoutId);
-      };
+      const userRole = response.data.role?.toUpperCase();
+      
+      if (userRole === 'ADMIN') {
+        router.replace('/dashboard/admin');
+      } else {
+        router.replace('/catalog');
+      }
     } 
     
     if (error) {

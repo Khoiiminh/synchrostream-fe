@@ -48,6 +48,7 @@ export const authSlice = createSlice({
         clearCredentials: (state) => {
             state.token = null;
             state.isAuthenticated = false;
+            state.username = null;
         },
     },
 });
