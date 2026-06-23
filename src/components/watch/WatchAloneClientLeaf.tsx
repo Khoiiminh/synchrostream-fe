@@ -30,11 +30,16 @@ export default function WatchAloneClientLeaf({ mediaId }: { mediaId: string }) {
   // Ref hooked to the bounding wrapper so custom UI stays visible in full-screen mode
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Local volume adjustments tracking layout states
   const [volume, setVolume] = useState(1); // Default to max (1.0)
   const [isMuted, setIsMuted] = useState(false);
   const [prevVolume, setPrevVolume] = useState(1);
+
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const [showControls, setShowControls] = useState(true);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [duration, setDuration] = useState(0);
   
   // Instantiating the stable engine state actor local to this leaf node instance
   const [engine] = useState(() => new SyncEngine(store));
@@ -48,8 +53,43 @@ export default function WatchAloneClientLeaf({ mediaId }: { mediaId: string }) {
   const isPlaying = playbackState?.isPlaying ?? false;
   const currentTime = playbackState?.currentTime ?? 0;
 
+  // Triggers timer resets whenever mouse moves inside player bounds
+  const handleMouseMove = () => {
+    setShowControls(true);
+
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+
+    // Auto-hide after 2.5 seconds of absolute mouse stillness
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (isPlaying) {
+        setShowControls(false);
+      }
+    }, 2500);
+  }
+
+  // Instantly hides bars when cursor exits bounding frame boundaries
+  const handleMouseLeave = () => {
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    if (isPlaying) {
+      setShowControls(false);
+    }
+  };
+
+  // Clean up timeouts on component unmount
   useEffect(() => {
-    if (videoRef.current && streamData?.streaming?.hlsUrl) {
+    return () => {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const videoElement = videoRef.current;
+
+    if (videoElement && streamData?.streaming?.hlsUrl) {
       // First update the active target media ID in the store mirror
       store.dispatch(
         updatePlaybackSnapshot({
@@ -59,15 +99,23 @@ export default function WatchAloneClientLeaf({ mediaId }: { mediaId: string }) {
 
       // Pass only the strict properties expected by the signature
       engine.attachElement({
-        element: videoRef.current,
+        element: videoElement,
         streamUrl: streamData.streaming.hlsUrl
       });
-    }
 
-    return () => {
-      engine.dispose();
-      store.dispatch(resetPlayback());
-    };
+      // Track duration updates safely from metadata loading actions
+      const handleDurationChange = () => {
+        setDuration(videoElement.duration || 0);
+      };
+
+      videoElement.addEventListener('durationchange', handleDurationChange);
+      
+      return () => {
+        videoElement.removeEventListener('durationchange', handleDurationChange);
+        engine.dispose();
+        store.dispatch(resetPlayback());
+      };
+    }
   }, [engine, streamData, mediaId, store]);
 
   // Sync state tracking if the user exits fullscreen using native keys (like ESC)
@@ -79,6 +127,11 @@ export default function WatchAloneClientLeaf({ mediaId }: { mediaId: string }) {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
+
+  // Seek/Scrubber Bar handler using SyncEngine actor
+  const handleSeekChange = (value: number) => {
+    engine.seek(value);
+  };
 
   // Volume Change Mutator Function
   const handleVolumeChange = (value: number) => {
@@ -145,19 +198,31 @@ export default function WatchAloneClientLeaf({ mediaId }: { mediaId: string }) {
         {/* NATIVE CONTAINER WRAPPER: Handles true fullscreen element binding */}
         <div 
           ref={playerContainerRef} 
-          className="w-full flex items-center justify-center bg-black"
-          style={{ 
-            aspectRatio: isFullscreen ? undefined : '16/9',
-            maxHeight: isFullscreen ? '100vh' : 'calc(100vh - 180px)'
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          className={`w-full flex items-center justify-center bg-black transition-none ${
+            showControls ? 'cursor-default' : 'cursor-none'
+          }`}
+          style={isFullscreen ? {
+            width: '100vw',
+            height: '100vh',
+            maxHeight: '100vh'
+          } : { 
+            aspectRatio: '16/9',
+            maxHeight: 'calc(100vh - 180px)'
           }}
         >
-          {/* 16/9 ratio styles so it cannot collapse to 0px while buffering */}
+          {/* Inner Card Wrapper */}
           <Paper 
-            radius="md" 
-            className="bg-black relative group w-full shadow-2xl overflow-hidden"
-            style={{ 
+            radius={isFullscreen ? 'none' : 'md'} 
+            className="bg-black relative w-full shadow-2xl overflow-hidden"
+            style={isFullscreen ? {
+              width: '100%',
+              height: '100%',
+              maxHeight: '100vh'
+            } : { 
               aspectRatio: '16/9',
-              maxHeight: 'calc(100vh - 180px)' // Prevents video from bleeding past viewport heights
+              maxHeight: 'calc(100vh - 180px)'
             }}
           >
             <video 
@@ -168,7 +233,29 @@ export default function WatchAloneClientLeaf({ mediaId }: { mediaId: string }) {
             />
             
             {/* Transparent overlay controls menu structure */}
-            <div className="absolute bottom-0 left-0 right-0 w-full p-4 bg-linear-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-30">
+            <div 
+              className={`absolute bottom-0 left-0 right-0 w-full p-4 bg-linear-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300 z-30 ${
+                showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+              }`}
+            >
+              {/* SEEK / SCRUBBER BAR CONTAINER */}
+              <div className="w-full px-1">
+                <Slider
+                  size="sm"
+                  color="blue"
+                  label={(value) => formatTime(value)}
+                  min={0}
+                  max={duration || 100}
+                  value={currentTime}
+                  onChange={handleSeekChange}
+                  styles={{
+                    root: { display: 'flex', alignItems: 'center' },
+                    track: { cursor: 'pointer', height: 4 },
+                    thumb: { transition: 'transform 0.1s ease', cursor: 'pointer' }
+                  }}
+                />
+              </div>
+              
               <Group justify="space-between" align="center" className="w-full">
                 
                 {/* LEFT CONTROLS CONTAINER */}
@@ -195,7 +282,6 @@ export default function WatchAloneClientLeaf({ mediaId }: { mediaId: string }) {
                     {formatTime(currentTime)}
                   </Text>
 
-                  {/* Snapped right next to the time metrics indicator */}
                   <Group gap="xs" style={{ width: 110 }} className="ml-2">
                     <button 
                       onClick={toggleMute} 
