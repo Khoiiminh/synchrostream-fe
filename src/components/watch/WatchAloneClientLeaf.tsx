@@ -38,6 +38,8 @@ export default function WatchAloneClientLeaf({ mediaId }: { mediaId: string }) {
 
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [duration, setDuration] = useState(0);
   
   // Instantiating the stable engine state actor local to this leaf node instance
   const [engine] = useState(() => new SyncEngine(store));
@@ -85,7 +87,9 @@ export default function WatchAloneClientLeaf({ mediaId }: { mediaId: string }) {
   }, []);
 
   useEffect(() => {
-    if (videoRef.current && streamData?.streaming?.hlsUrl) {
+    const videoElement = videoRef.current;
+
+    if (videoElement && streamData?.streaming?.hlsUrl) {
       // First update the active target media ID in the store mirror
       store.dispatch(
         updatePlaybackSnapshot({
@@ -95,15 +99,23 @@ export default function WatchAloneClientLeaf({ mediaId }: { mediaId: string }) {
 
       // Pass only the strict properties expected by the signature
       engine.attachElement({
-        element: videoRef.current,
+        element: videoElement,
         streamUrl: streamData.streaming.hlsUrl
       });
-    }
 
-    return () => {
-      engine.dispose();
-      store.dispatch(resetPlayback());
-    };
+      // Track duration updates safely from metadata loading actions
+      const handleDurationChange = () => {
+        setDuration(videoElement.duration || 0);
+      };
+
+      videoElement.addEventListener('durationchange', handleDurationChange);
+      
+      return () => {
+        videoElement.removeEventListener('durationchange', handleDurationChange);
+        engine.dispose();
+        store.dispatch(resetPlayback());
+      };
+    }
   }, [engine, streamData, mediaId, store]);
 
   // Sync state tracking if the user exits fullscreen using native keys (like ESC)
@@ -115,6 +127,11 @@ export default function WatchAloneClientLeaf({ mediaId }: { mediaId: string }) {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
+
+  // Seek/Scrubber Bar handler using SyncEngine actor
+  const handleSeekChange = (value: number) => {
+    engine.seek(value);
+  };
 
   // Volume Change Mutator Function
   const handleVolumeChange = (value: number) => {
@@ -221,6 +238,24 @@ export default function WatchAloneClientLeaf({ mediaId }: { mediaId: string }) {
                 showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
               }`}
             >
+              {/* SEEK / SCRUBBER BAR CONTAINER */}
+              <div className="w-full px-1">
+                <Slider
+                  size="sm"
+                  color="blue"
+                  label={(value) => formatTime(value)}
+                  min={0}
+                  max={duration || 100}
+                  value={currentTime}
+                  onChange={handleSeekChange}
+                  styles={{
+                    root: { display: 'flex', alignItems: 'center' },
+                    track: { cursor: 'pointer', height: 4 },
+                    thumb: { transition: 'transform 0.1s ease', cursor: 'pointer' }
+                  }}
+                />
+              </div>
+              
               <Group justify="space-between" align="center" className="w-full">
                 
                 {/* LEFT CONTROLS CONTAINER */}
