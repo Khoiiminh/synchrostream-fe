@@ -26,7 +26,18 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: [
     'localhost',
     '192.168.1.4'
-  ]
+  ],
+
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'pub-28c60659435842bf9c90cfbba6b4b5f2.r2.dev',
+        port: '',
+        pathname: '/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

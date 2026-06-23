@@ -2,6 +2,13 @@ import { updatePlaybackSnapshot } from '@/store/slices/playbackSlice';
 import { Store } from '@reduxjs/toolkit';
 import Hls from 'hls.js';
 
+interface QualityLevel {
+  index: number;
+  height: number;
+  bitrate: number;
+  name: string;
+}
+
 export class SyncEngine {
     private videoElement: HTMLVideoElement | null = null;
     private hlsInstance: Hls | null = null;
@@ -61,6 +68,29 @@ export class SyncEngine {
         }
     }
 
+    public getQualityLevels(): QualityLevel[] {
+        if (!this.hlsInstance) return [];
+
+        return this.hlsInstance.levels.map((level, idx) => ({
+            index: idx,
+            height: level.height,
+            bitrate: level.bitrate,
+            name: level.name || `${level.height}p`
+        }));
+    }
+
+    public getCurrentQualityIndex(): number {
+        if (!this.hlsInstance) return -1;
+        
+        return this.hlsInstance.currentLevel;
+    }
+
+    public setQualityLevel(levelIndex: number): void {
+        if (this.hlsInstance) {
+            this.hlsInstance.currentLevel = levelIndex;
+        }
+    }
+
     public detachElement(): void {
         this.unsubscribeListeners.forEach((cleanup) => cleanup());
         this.unsubscribeListeners = [];
@@ -76,6 +106,7 @@ export class SyncEngine {
         }
 
         this.playPromise = null;    // Clean up memory reference
+        this.isManifestReady = false;
     }
 
     public async play(): Promise<void> {
@@ -99,9 +130,6 @@ export class SyncEngine {
     public async pause(): Promise<void> {
         if (!this.videoElement) return;
 
-        // FIX: Do NOT await the promise here, which blocks runtime logic if buffering hangs.
-        // Instead, issue the pause instruction immediately. HTML5 handles rejecting 
-        // the pending play promise inside our play catch block via 'AbortError'.
         this.videoElement.pause();
     }
 
