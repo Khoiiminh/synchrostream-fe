@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSelector, useStore } from 'react-redux';
-import { Container, Button, Group, Text, Loader, Center, Paper, Slider, Menu } from '@mantine/core';
+import { Button, Group, Text, Loader, Center, Paper, Slider } from '@mantine/core';
 import { useGetSoloStreamQuery, mediaApi } from '@/store/services/mediaApi';
 import { SyncEngine } from '@/core/services/SyncEngine';
 import { resetPlayback, updatePlaybackSnapshot } from '@/store/slices/playbackSlice';
@@ -19,6 +19,11 @@ interface QualityLevel {
   name: string;
 }
 
+interface WatchClientLeafProps {
+  mediaId: string;
+  isPartyMode: boolean;
+}
+
 // Helper Utility: Convert seconds directly into HH:MM:SS format strings
 const formatTime = (timeInSeconds: number): string => {
   if (isNaN(timeInSeconds) || timeInSeconds < 0) return '00:00:00';
@@ -30,7 +35,7 @@ const formatTime = (timeInSeconds: number): string => {
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 };
 
-export default function WatchAloneClientLeaf({ mediaId }: { mediaId: string }) {
+export default function WatchClientLeaf({ mediaId, isPartyMode }: WatchClientLeafProps) {
   const router = useRouter();
   const store = useStore();
   const videoRef = useRef<HTMLVideoElement | null>(null);

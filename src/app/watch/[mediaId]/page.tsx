@@ -1,5 +1,5 @@
 import React from 'react';
-import WatchAloneClientLeaf from '@/components/watch/WatchAloneClientLeaf';
+import WatchClientLeaf from '@/components/watch/WatchClientLeaf';
 
 interface WatchPageProps {
   params: Promise<{
@@ -12,6 +12,6 @@ export default async function WatchAlonePage({ params }: WatchPageProps) {
   const resolvedParams = await params;
 
   return (
-    <WatchAloneClientLeaf mediaId={resolvedParams.mediaId} />
+    <WatchClientLeaf mediaId={resolvedParams.mediaId} isPartyMode={false}/>
   );
 }
