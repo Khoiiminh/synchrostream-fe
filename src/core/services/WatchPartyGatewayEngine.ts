@@ -45,8 +45,10 @@ export class WatchPartyGatewayEngine {
     const {roomCode, passwordPlain} = payload.dto;
     const rtcIdentity = payload.rtcIdentity;
 
+    const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:7000';
+
     // Matches backend: namspace: 'sync-hub' (incorporating the backend parameter typo safely)
-    this.socket = io('http://localhost:7000/sync-hub', {
+    this.socket = io(`${baseUrl}/sync-hub`, {
       path: '/socket.io',
       transports: ['websocket'],
       autoConnect: true,
@@ -143,7 +145,7 @@ export class WatchPartyGatewayEngine {
    */
   public on(p: {event: string, callback: (...args: any[]) => void}): void {
     if (!this.socket) {
-      console.warn(`Attempted to listen to event '${event}' before socket initialization.`);
+      console.warn(`Attempted to listen to event '${p.event}' before socket initialization.`);
       return;
     }
 
