@@ -5,6 +5,8 @@ import ingestionReducer from '@/store/slices/ingestionSlice';
 import playbackReducer from '@/store/slices/playbackSlice'
 import { adminMediaApi } from "./services/adminMediaApi";
 import { mediaApi } from "./services/mediaApi";
+import roomReducer from "@/store/slices/roomSlice";
+import { watchPartyApi } from "./services/watchPartyApi";
 
 /**
  * CENTRAL REDUX SETUP
@@ -22,6 +24,8 @@ export const store = configureStore({
 
         playback: playbackReducer,
 
+        room: roomReducer,
+
         // Dynamically adds the RTK Query cache management logic
         // It returns: A combined state object like:
         // { 
@@ -36,6 +40,7 @@ export const store = configureStore({
         [authApi.reducerPath]: authApi.reducer, // Using [authApi.reducerPath] ensures the key in the store matches the reducerPath ("authApi") that is defined in your API file.
         [adminMediaApi.reducerPath]: adminMediaApi.reducer,
         [mediaApi.reducerPath]: mediaApi.reducer,
+        [watchPartyApi.reducerPath]: watchPartyApi.reducer,
     },
 
     // A "pipeline" that actions pass through before hitting the store
@@ -45,7 +50,7 @@ export const store = configureStore({
     middleware: (getDefaultMiddleware) => 
         getDefaultMiddleware({ 
             serializableCheck: false    // Prevents errors with fast engine-to-store snapshot synchronization
-        }).concat(authApi.middleware, adminMediaApi.middleware, mediaApi.middleware),    // Only API services append middleware here
+        }).concat(authApi.middleware, adminMediaApi.middleware, mediaApi.middleware, watchPartyApi.middleware),    // Only API services append middleware here
 });
 
 // A dynamic TypeScript type representing the entire state of the store
