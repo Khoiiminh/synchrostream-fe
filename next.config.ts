@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
   // Rewrites act as a proxy, masking the actual destination of a request.
   // This is an asynchronous function that returns a list of URL mapping rules.
   async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:7000';
+
     return [
       {
         // The Trigger: This tells Next.js to watch for any incoming request that starts with /v1/.
@@ -19,7 +21,7 @@ const nextConfig: NextConfig = {
 
         // This tells the NextJS to mask the request. Instead of the browser looking for these files 
         // inside the NextJS project, the server fetches the data from the backend running port 7000
-        destination: 'http://localhost:7000/v1/:path*'
+        destination: `${backendUrl}/v1/:path*`
       }
     ]
   },
