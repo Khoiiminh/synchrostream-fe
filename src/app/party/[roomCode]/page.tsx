@@ -22,7 +22,7 @@ export default function IntegratedWatchPartyPage() {
   // Read from incoming webscoket activeRoom state, if empty fetch from the source URL (?mediaId=...)
   const queryMediaId = searchParams.get('mediaId');
   const queryPassword = searchParams.get('pwd') || '';
-  const resolvedMovieId = activeRoom?.moviedId || queryMediaId || '';
+  const resolvedMovieId = activeRoom?.movieId || queryMediaId || '';
 
   // Utilize the roomCode parameter to hook into our real websocket sync hub
   useEffect(() => {

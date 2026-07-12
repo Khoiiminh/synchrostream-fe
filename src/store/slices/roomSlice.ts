@@ -20,7 +20,7 @@ export interface RoomSnapshotPayload {
   roomCode: string;
   passwordPlain: string;
   ownerId: string;
-  moviedId: string; 
+  movieId: string; 
   playback: PlaybackStateSnapshot;
   occupancy: {
     current: number;
