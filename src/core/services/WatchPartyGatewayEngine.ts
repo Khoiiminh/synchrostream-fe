@@ -1,5 +1,5 @@
 import { io, Socket } from "socket.io-client";
-import { configureStore, Store } from "@reduxjs/toolkit";
+import { Store } from "@reduxjs/toolkit";
 import {
   syncRoomState,
   updateRoomPlayback,
@@ -17,6 +17,7 @@ interface JoinRoomDto {
 interface ConnectionHandshakePayload {
   dto: JoinRoomDto;
   rtcIdentity: string;
+  userId: string;
 }
 
 interface SyncPulseBroadcastPayload {
@@ -45,11 +46,12 @@ export class WatchPartyGatewayEngine {
   private socket: Socket | null = null;
   private telemetryIntervalId: NodeJS.Timeout | null = null;
   private queueListeners: { event: string; callback: (...args: any[]) => void }[] = [];
+  private currentUserId: string | null = null;
 
   constructor(private readonly store: Store) {}
 
   public connect(payload: ConnectionHandshakePayload): void {
-    if (this.socket?.connected || this.socket?.connect) return;
+    if (this.socket?.connected) return;
 
     const token =
       typeof window !== "undefined"
@@ -57,6 +59,7 @@ export class WatchPartyGatewayEngine {
         : null;
     const { roomCode, passwordPlain } = payload.dto;
     const rtcIdentity = payload.rtcIdentity;
+    this.currentUserId = payload.userId;
 
     const baseUrl =
       process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:7000";
@@ -89,50 +92,74 @@ export class WatchPartyGatewayEngine {
     if (!this.socket) return;
 
     // Direct structural mirrors of your gateway server emitters
-    this.socket.on("room:state_update", (snapshot: RoomSnapshotPayload) => {
-      console.log("Room Sync Payload:", snapshot);
-      this.store.dispatch(syncRoomState(snapshot));
-      this.startTelemetryHeartbeat(
-        snapshot.roomId,
-        snapshot.members[0]?.userId || "",
-      );
-    });
+    this.socket.on("room:state_update", this.handleRoomStateUpdate);
 
-    this.socket.on("room:sync:broadcast", (data: SyncPulseBroadcastPayload) => {
-      this.store.dispatch(
-        updateRoomPlayback({
-          status: data.action === "PLAY" ? "PLAYING" : "PAUSED",
-          playhead: data.playhead,
-          lastUpdated: data.serverExecutionTime,
-        }),
-      );
-    });
+    this.socket.on("room:sync:broadcast", this.handlePlaybackBroadcast);
 
-    this.socket.on("room:member_left", (data: { userId: string }) => {
-      this.store.dispatch(removeMember({ userId: data.userId }));
-    });
+    this.socket.on("room:member_left", this.handleMemberLeft);
 
-    this.socket.on("room:error", (data: RoomErrorPayload) => {
-      this.store.dispatch(setRoomError({ message: data.message }));
-    });
+    this.socket.on("room:error", this.handleRoomError);
 
-    this.socket.on("room:telemetry:pong", (data: TelemetryPongPayload) => {
-      // Catch network roundtrip telemetry metrics directly from the server if debugging
-    });
+    this.socket.on("room:telemetry:pong", this.handleTelemetryPong);
 
-    this.socket.on("disconnect", () => {
-      this.stopTelemetryHeartbeat();
-      this.store.dispatch(clearRoomSession());
-    });
+    this.socket.on("disconnect", this.handleDisconnect);
 
     // Emits the incoming payload straight through the custom proxy event listener pipeline
-    this.socket.on("room:chat:broadcast", (data: ChatMessagePayload) => {
-      // By piping this event through, UI layers using engine.on({ event: 'room:chat:broadcast', callback }) capture this cleanly
-    });
+    this.socket.on("room:chat:broadcast", this.handleChatBroadcast);
 
     this.queueListeners.forEach((p) => {
       this.socket?.on(p.event, p.callback);
     })
+  }
+
+  private handleRoomStateUpdate = (snapshot: RoomSnapshotPayload): void => {
+    console.log("Room Sync Payload:", snapshot);
+      this.store.dispatch(syncRoomState(snapshot));
+      this.startTelemetryHeartbeat(
+        snapshot.roomId,
+        this.currentUserId ?? "",
+      );
+  }
+  
+  private handlePlaybackBroadcast = (data: SyncPulseBroadcastPayload): void => {
+    console.log("[WatchPartyGatewayEngine] RECEIVED room:sync:broadcast", data);
+
+    this.store.dispatch(
+        updateRoomPlayback({
+          status:
+            data.action==="PLAY"
+              ?"PLAYING"
+              :"PAUSED",
+          playhead:data.playhead,
+          lastUpdated:data.serverExecutionTime
+        })
+      );
+
+      this.playbackListeners.forEach((listener) => {
+        listener(data)
+      });
+  }
+
+  private handleMemberLeft = (data: { userId: string }): void => {
+    this.store.dispatch(removeMember({ userId: data.userId }));
+  }
+
+  private handleRoomError = (data: RoomErrorPayload) => {
+    this.store.dispatch(setRoomError({ message: data.message }));
+  }
+
+  private handleDisconnect = () => {
+    this.stopTelemetryHeartbeat();
+    this.store.dispatch(clearRoomSession());
+  }
+
+  private handleTelemetryPong = (data: TelemetryPongPayload): void => {
+     // Future latency calculations.
+     // Catch network roundtrip telemetry metrics directly from the server if debugging
+  }
+
+  private handleChatBroadcast = (data: ChatMessagePayload) => {
+    // By piping this event through, UI layers using engine.on({ event: 'room:chat:broadcast', callback }) capture this cleanly
   }
 
   public emitPlaybackPulse(payload: {
@@ -142,7 +169,26 @@ export class WatchPartyGatewayEngine {
     action: "PLAY" | "PAUSE" | "SEEK";
     playhead: number;
   }): void {
-    if (!this.socket) return;
+    console.log("[WatchPartyGatewayEngine] emitPlaybackPulse", {
+        connected: this.socket?.connected,
+        socketId: this.socket?.id,
+        payload,
+    });
+
+    if (!this.socket) {
+        console.error(
+            "[WatchPartyGatewayEngine] Cannot emit playback pulse: socket is null"
+        );
+        return;
+    }
+
+    if (!this.socket.connected) {
+        console.error(
+            "[WatchPartyGatewayEngine] Cannot emit playback pulse: socket is disconnected"
+        );
+        return;
+    }
+
     this.socket.emit("room:sync:pulse", payload);
   }
 
@@ -150,6 +196,14 @@ export class WatchPartyGatewayEngine {
     if (!this.socket) return;
 
     this.socket.emit("room:chat:message", payload);
+  }
+
+  public onPlaybackSync(callback: (payload: SyncPulseBroadcastPayload) => void) {
+    this.playbackListeners.add(callback);
+
+    return () => {
+      this.playbackListeners.delete(callback);
+    };
   }
 
   private startTelemetryHeartbeat(roomId: string, userId: string): void {
@@ -172,8 +226,15 @@ export class WatchPartyGatewayEngine {
     }
   }
 
+  private playbackListeners = new Set<
+      (
+        payload: SyncPulseBroadcastPayload
+      ) => void
+    >();
+
   public disconnect(): void {
     this.stopTelemetryHeartbeat();
+
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
@@ -184,25 +245,23 @@ export class WatchPartyGatewayEngine {
    * Allows React components to attach ephemeral listeners for events
    * that require UI side-effects (like routing/alerts) rather than Redux state changes.
    */
-  public on(p: { event: string; callback: (...args: any[]) => void }): void {
-    if (!this.socket) {
-      this.queueListeners.push(p)
-      console.warn(
-        `Attempted to listen to event '${p.event}' before socket initialization.`,
-      );
-      return;
+  public on(p: { event: string; callback: (...args: any[]) => void }): () => void {
+    this.queueListeners.push(p);
+
+    if (this.socket) {
+      this.socket.on(p.event, p.callback);
     }
 
-    this.socket.on(p.event, p.callback);
+    return () => {
+      this.off(p)
+    };
   }
 
   public off(p: { event: string; callback?: (...args: any[]) => void }): void {
     this.queueListeners = this.queueListeners.filter(
-      (l) => !(l.event === p.event && (!p.callback || l.callback === p.callback))
+      (listener) => !(listener.event === p.event && (!p.callback || listener.callback === p.callback)),
     );
-    if (this.socket) {
-      if (p.callback) this.socket.off(p.event, p.callback);
-      else this.socket.off(p.event);
-    }
+    
+    this.socket?.off(p.event, p.callback);
   }
 }

@@ -3,6 +3,7 @@ import './globals.css';
 import { ColorSchemeScript, MantineProvider, createTheme } from '@mantine/core';
 import { StoreProvider } from '@/store/StoreProvider';
 import { EngineProvider } from '@/context/EngineContext';
+import { SessionInterceptor } from '@/components/auth/SessionInterceptor';
 
 /**
  * TAILWIND & MANTINE INTEGRATION CONFIGURATION
@@ -37,8 +38,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </head>    
             <body className='bg-slate-950 text-slate-50 antialiased' suppressHydrationWarning={true}>
                 <StoreProvider>   {/**The `children` being passed into `StoreProvider` is the entire`MantineProvider` and everything inside it */}
+
                     <EngineProvider>
                         <MantineProvider theme={theme} defaultColorScheme='dark'>   {/**Allows all child components to access Mantine's theme variables and styling logic */}
+                            <SessionInterceptor />
                             {children}
                         </MantineProvider>
                     </EngineProvider>

@@ -174,6 +174,10 @@ export class SyncEngine {
         );
     }
 
+    public getCurrentTime(): number {
+        return this.videoElement?.currentTime ?? 0;
+    }
+
     public dispose(): void {
         this.detachElement();
     }

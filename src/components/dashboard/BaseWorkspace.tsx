@@ -24,7 +24,7 @@ export function BaseWorkspace({ roleScope }: BaseWorkspaceProps) {
 
   useEffect(() => {
     if (response?.success && response.data?.username) {
-      dispatch(setProfileData({ username: response.data.username }));
+      dispatch(setProfileData({ userId: response.data.id, username: response.data.username }));
     }
   }, [response, dispatch]);
 

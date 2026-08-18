@@ -3,13 +3,17 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 interface AuthState {
     token: string | null;
     isAuthenticated: boolean;
-    username?: string | null
+    username: string | null;
+    userId: string | null;
+    isAuthHydrated: boolean;
 }
 
 const initialState: AuthState = {
     token: null,
+    userId: null,
     username: null,
     isAuthenticated: false,
+    isAuthHydrated: false,
 }
 
 // Creates the actual slice - contianer for the state logic
@@ -38,14 +42,21 @@ export const authSlice = createSlice({
             state.isAuthenticated = true;
         },
 
-        setProfileData: (state, action: PayloadAction<{ username: string }>) => {
+        setProfileData: (state, action: PayloadAction<{ userId: string; username: string }>) => {
+            state.userId = action.payload.userId;
             state.username = action.payload.username;
+            state.isAuthenticated = true;
+        },
+
+        setAuthHydrated: (state) => {
+            state.isAuthHydrated = true;
         },
 
         // The logout logic
         // It wipes the token and sets the state to `false`
         // Resets the state to: `{ token: null, isAuthenticated: false }`
         clearCredentials: (state) => {
+            state.userId = null;
             state.token = null;
             state.isAuthenticated = false;
             state.username = null;
@@ -63,7 +74,7 @@ export const authSlice = createSlice({
 //          token: "...",
 //      } 
 //  }`
-export const { setCredentials, clearCredentials, setProfileData } = authSlice.actions;
+export const { setCredentials, clearCredentials, setProfileData, setAuthHydrated } = authSlice.actions;
 
 // The main reducer function
 // This need to be imported into `store.ts` file so the Redux  store knows how to handle auth-related changes.
