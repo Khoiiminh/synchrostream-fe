@@ -106,7 +106,7 @@ export default function VideoPlayer({
         syncQualityTracks,
       );
 
-      controller.dispose();
+      controller.detach();
 
       onDurationChange(0);
       onQualityLevelsChange([]);

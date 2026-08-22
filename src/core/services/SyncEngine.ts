@@ -92,51 +92,132 @@ export class SyncEngine {
     }
 
     public detachElement(): void {
+        console.trace("[SyncEngine] DETACHING VIDEO ELEMENT", {
+            currentTime: this.videoElement?.currentTime,
+            paused: this.videoElement?.paused,
+            readyState: this.videoElement?.readyState,
+            src: this.videoElement?.currentSrc,
+        });
+
         this.unsubscribeListeners.forEach((cleanup) => cleanup());
         this.unsubscribeListeners = [];
+
+        if (this.videoElement) {
+            this.videoElement.pause();
+            this.videoElement.removeAttribute("src");
+            this.videoElement.load();   
+        }
 
         if (this.hlsInstance) {
             this.hlsInstance.destroy();
             this.hlsInstance = null;
         }
 
-        if (this.videoElement) {
-            this.videoElement.src = '';
-            this.videoElement = null;
-        }
+        this.videoElement = null;
 
         this.playPromise = null;    // Clean up memory reference
         this.isManifestReady = false;
     }
 
     public async play(): Promise<void> {
-        if (!this.videoElement || !this.isManifestReady) return;
-
-        try {
-            this.playPromise = this.videoElement.play();
-            await this.playPromise;
-        } catch (error) {
-            // Suppress standard abort errors from overlapping engine events
-            if (error instanceof DOMException && error.name === 'AbortError') {
-                console.warn('Playback play() was safely intercepted by an intentional pause sequence.');
-            } else {
-                console.error('Core media playback failure:', error);
-            }
-        } finally {
-            this.playPromise = null;
+        if (!this.videoElement) {
+            throw new Error(
+                "[SyncEngine] PLAY rejected: video element is not attached"
+            );
         }
+
+        if (!this.isManifestReady) {
+            throw new Error(
+                "[SyncEngine] PLAY rejected: HLS manifest is not ready"
+            );
+        }
+
+        if (this.playPromise) {
+            return this.playPromise;
+        }
+
+        const video = this.videoElement;
+
+        console.log("[SyncEngine] PLAY requested", {
+            currentTime: video.currentTime,
+            paused: video.paused,
+            readyState: video.readyState,
+        });
+
+        this.playPromise = video.play()
+            .then(() => {
+                if (this.videoElement === video) {
+                    this.emitSnapshot();
+
+                    console.log("[SyncEngine] PLAY completed", {
+                        currentTime: video.currentTime,
+                        paused: video.paused,
+                        isPlaying: !video.paused,
+                    });
+                }
+            })
+            .catch((error) => {
+                console.error("[SyncEngine] PLAY failed", {
+                    error,
+                    name:
+                        error instanceof DOMException
+                            ? error.name
+                            : undefined,
+                    message:
+                        error instanceof Error
+                            ? error.message
+                            : String(error),
+                    currentTime: video.currentTime,
+                    paused: video.paused,
+                    readyState: video.readyState,
+                });
+
+                throw error;
+            })
+            .finally(() => {
+                this.playPromise = null;
+            });
+
+        return this.playPromise;
     }
 
     public async pause(): Promise<void> {
-        if (!this.videoElement) return;
+        if (!this.videoElement) {
+            console.warn("[SyncEngine] Cannot PAUSE: video element is not attached");
+            return;
+        }
+
+        console.log("[SyncEngine] PAUSE", {
+            currentTime: this.videoElement.currentTime,
+            paused: this.videoElement.paused,
+        });
 
         this.videoElement.pause();
+        // Immediately project the actual DOM state into Redux.
+        this.emitSnapshot();
+
+        console.log("[SyncEngine] PAUSE completed", {
+            currentTime: this.videoElement.currentTime,
+            paused: this.videoElement.paused,
+        });
     }
 
     public seek(seconds: number): void {
-        if (this.videoElement) {
-            this.videoElement.currentTime = seconds;
+        if (!this.videoElement) {
+            console.warn("[SyncEngine] Cannot SEEK: video element is not attached");
+            return;
         }
+
+        const target = Math.max(0, seconds);
+
+        console.log("[SyncEngine] SEEK", {
+            from: this.videoElement.currentTime,
+            to: target,
+        });
+
+        this.videoElement.currentTime = target;
+        // Immediately project the actual DOM state into Redux.
+        this.emitSnapshot();
     }
 
     private setupListeners(): void {

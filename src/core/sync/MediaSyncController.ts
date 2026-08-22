@@ -45,6 +45,15 @@ export class MediaSyncController {
         this.attached = false;
     }
 
+    detach() {
+        if (!this.attached) {
+            return;
+        }
+
+        this.adapter.detachVideo();
+        this.attached = false;
+    }
+
     getQualityLevels() {
         return this.adapter.getQualityLevels();
     }

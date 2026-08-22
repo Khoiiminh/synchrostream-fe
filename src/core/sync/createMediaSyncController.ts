@@ -4,6 +4,7 @@ import { SoloSyncAdapter } from "./SoloSyncAdapter";
 import { MediaSyncController } from "./MediaSyncController";
 import { WatchPartyGatewayEngine } from "../services/WatchPartyGatewayEngine";
 import { PartySyncAdapter } from "./PartySyncAdapter";
+import { RemotePlaybackGuard } from "../services/RemotePlaybackGuard";
 
 export function createSoloMediaController(store: Store, streamUrl: string) {
     const engine = new SyncEngine(store);
@@ -21,9 +22,11 @@ export function createPartyMediaController(
         roomId: string;
         roomCode: string;
         userId: string;
+        ownerId: string;
     }
 ) {
     const engine = new SyncEngine(store);
+    const remotePlaybackGuard = new RemotePlaybackGuard();
 
     const adapter = new PartySyncAdapter(
         engine,
@@ -31,7 +34,9 @@ export function createPartyMediaController(
         options.streamUrl,
         options.roomId,
         options.roomCode,
-        options.userId
+        options.userId,
+        options.ownerId,
+        remotePlaybackGuard,
     );
 
     return new MediaSyncController(adapter);

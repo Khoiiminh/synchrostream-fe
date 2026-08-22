@@ -1,3 +1,4 @@
+import { RemotePlaybackGuard } from "../services/RemotePlaybackGuard";
 import { SyncEngine } from "../services/SyncEngine";
 import { WatchPartyGatewayEngine } from "../services/WatchPartyGatewayEngine";
 
@@ -12,6 +13,7 @@ interface RemotePlaybackPayload {
 
 export class PlaybackCoordinator {
     private unsubscribe: (() =>  void) | null = null;
+    private disposed = false;
 
     /**
      * Maximum drift that we tolerate without correcting playback.
@@ -28,9 +30,16 @@ export class PlaybackCoordinator {
     constructor(
         private readonly engine: SyncEngine,
         private readonly gateway: WatchPartyGatewayEngine,
+        private readonly localUserId: string,
+        private readonly remotePlaybackGuard: RemotePlaybackGuard,
     ) {}
 
-    start() {
+    start(): void {
+        if (this.disposed) {
+            throw new Error(
+                "[PlaybackCoordinator] Cannot start a disposed coordinator"
+            );
+        }
         if (this.unsubscribe) return;
 
         console.log("[PlaybackCoordinator] Starting");
@@ -50,7 +59,7 @@ export class PlaybackCoordinator {
         });
     }
 
-    stop() {
+    stop(): void {
         this.unsubscribe?.();
         this.unsubscribe = null;
 
@@ -58,12 +67,29 @@ export class PlaybackCoordinator {
     }
 
     dispose(): void {
+        this.disposed = true;
         this.stop();
     }
 
     private handleRemotePlayback(
         payload: RemotePlaybackPayload
     ): void {
+
+        /**
+         * Avoid self-originated events
+         */
+        if (!this.isRemoteEvent(payload)) {
+            console.log(
+                "[PlaybackCoordinator] Ignoring self-originated playback",
+                {
+                    action: payload.action,
+                    originatorId: payload.originatorId,
+                }
+            );
+
+            return;
+        }
+
         console.log(
             "[PlaybackCoordinator] Handling remote action",
             payload.action
@@ -73,10 +99,10 @@ export class PlaybackCoordinator {
 
         switch(action) {
             case "PLAY":
-                this.handleRemotePlay(payload);
+                void this.handleRemotePlay(payload);
                 break;
             case "PAUSE":
-                this.handleRemotePause(payload);
+                void this.handleRemotePause(payload);
                 break;
             case "SEEK":
                 this.handleRemoteSeek(payload);
@@ -84,34 +110,66 @@ export class PlaybackCoordinator {
         }
     }
 
-    private handleRemotePlay(payload: RemotePlaybackPayload): void {
-        const targetPlayhead = this.calculateTargetPlayhead(payload);
-
+    private async handleRemotePlay(payload: RemotePlaybackPayload): Promise<void> {
         console.log("[PlaybackCoordinator] Remote PLAY", {
             receivedPlayhead: payload.playhead,
-            targetPlayhead,
             localPlayhead: this.engine.getCurrentTime(),
+            serverExecutionTime: payload.serverExecutionTime,
         });
 
-        this.correctDrift(targetPlayhead);
-        void this.engine.play();
+        try {
+            await this.remotePlaybackGuard.runAsync(async () => {
+                if (this.disposed) return;
+
+                await this.engine.play();
+
+                if (this.disposed) return;
+
+                const targetPlayhead =
+                    this.calculateTargetPlayhead(payload);
+
+                this.correctDrift(targetPlayhead);
+            });
+
+            if (!this.disposed) {
+                console.log(
+                    "[PlaybackCoordinator] Local playback started"
+                );
+            }
+
+        } catch (error) {
+            console.error(
+                "[PlaybackCoordinator] Failed to start local playback",
+                error
+            );
+        }
     }
 
-    private handleRemotePause(payload: RemotePlaybackPayload): void {
-        const targetPlayhead = this.calculateTargetPlayhead(payload);
-
+    private async handleRemotePause(payload: RemotePlaybackPayload): Promise<void> {
         console.log("[PlaybackCoordinator] Remote PAUSE", {
             receivedPlayhead: payload.playhead,
-            targetPlayhead,
             localPlayhead: this.engine.getCurrentTime(),
         });
 
-        this.correctDrift(targetPlayhead); 
-        void this.engine.pause();
+        try {
+            await this.remotePlaybackGuard.runAsync(async () => {
+                const targetPlayhead =
+                    this.calculateTargetPlayhead(payload);
+
+                this.correctDrift(targetPlayhead);
+
+                await this.engine.pause();
+            });
+        } catch (error) {
+            console.error(
+                "[PlaybackCoordinator] Failed to pause local playback",
+                error
+            );
+        }
     }
 
     private handleRemoteSeek(payload: RemotePlaybackPayload): void {
-        const targetPlayhead = this.calculateTargetPlayhead(payload);
+        const targetPlayhead = payload.playhead;
         const localPlayhead = this.engine.getCurrentTime();
 
         console.log("[PlaybackCoordinator] Remote SEEK", {
@@ -121,7 +179,7 @@ export class PlaybackCoordinator {
             drift: targetPlayhead - localPlayhead,
         });
 
-        this.engine.seek(targetPlayhead);
+        this.remotePlaybackGuard.run(() => this.engine.seek(targetPlayhead));
     }
 
     /**
@@ -139,7 +197,7 @@ export class PlaybackCoordinator {
     private calculateTargetPlayhead(payload: RemotePlaybackPayload): number {
         if ( payload.action !== "PLAY" ) return payload.playhead;
 
-        const elapsedSeconds = (Date.now() - payload.serverExecutionTime) / 1000;
+        const elapsedSeconds = Math.max(0, (Date.now() - payload.serverExecutionTime) / 1000);
 
         const targetPlayhead = Math.max(0, payload.playhead + elapsedSeconds,);
 
@@ -169,14 +227,14 @@ export class PlaybackCoordinator {
 
         if (Math.abs(drift) <= this.driftToleranceSeconds) {
             console.log(
-                "[PlaybackCoordinator] Drift within tolerance — no correction"
+                "[PlaybackCoordinator] Drift within tolerance — no seek required"
             );
 
             return;
         }
 
         console.log(
-            "[PlaybackCoordinator] Drift exceeds tolerance — correcting",
+            "[PlaybackCoordinator] Drift exceeds tolerance — seeking",
             {
                 from: localPlayhead,
                 to: targetPlayhead,
@@ -185,5 +243,9 @@ export class PlaybackCoordinator {
         );
 
         this.engine.seek(targetPlayhead);
+    }
+
+    private isRemoteEvent(payload: RemotePlaybackPayload): boolean {
+        return payload.originatorId !== this.localUserId;
     }
 }

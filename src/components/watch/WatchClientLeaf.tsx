@@ -101,33 +101,29 @@ export default function WatchClientLeaf({
    */
   const partyUserId = isPartyMode ? userId : undefined;
 
-  /*
-   * Controller creation belongs here.
-   *
-   * It is derived from the current playback configuration,
-   * not stored as React state.
-   *
-   */
+  const streamUrl = streamData?.streaming?.hlsUrl;
+  const roomId = activeRoom?.roomId;
+  const roomCode = activeRoom?.roomCode;
+  const ownerId = activeRoom?.ownerId;
   const controller = useMemo<MediaSyncController | null>(() => {
-    const streamUrl = streamData?.streaming?.hlsUrl;
-
     if (!streamUrl) {
       return null;
     }
 
-    if (
-      isPartyMode &&
-      activeRoom &&
-      partyUserId
-    ) {
+    if (isPartyMode) {
+      if (!roomId || !roomCode || !partyUserId || !ownerId) {
+        return null;
+      }
+
       return createPartyMediaController(
         store,
         gatewayEngine,
         {
           streamUrl,
-          roomId: activeRoom.roomId,
-          roomCode: activeRoom.roomCode,
+          roomId,
+          roomCode,
           userId: partyUserId,
+          ownerId,
         },
       );
     }
@@ -137,11 +133,13 @@ export default function WatchClientLeaf({
       streamUrl,
     );
   }, [
-    streamData?.streaming?.hlsUrl,
-    store,
-    isPartyMode,
-    activeRoom,
+    streamUrl,
+    roomId,
+    roomCode,
     partyUserId,
+    ownerId,
+    isPartyMode,
+    store,
     gatewayEngine,
   ]);
 

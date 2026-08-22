@@ -165,7 +165,6 @@ export class WatchPartyGatewayEngine {
   public emitPlaybackPulse(payload: {
     roomId: string;
     roomCode: string;
-    userId: string;
     action: "PLAY" | "PAUSE" | "SEEK";
     playhead: number;
   }): void {
