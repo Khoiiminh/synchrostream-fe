@@ -1,14 +1,10 @@
 import { Container, Title, Text, Stack } from '@mantine/core';
 import { LandingHeroActions } from '@/components/landing/LandingHeroActions';
 import { HeaderSignInButton } from '@/components/landing/HeaderSignInButton';
-import { SessionInterceptor } from '@/components/auth/SessionInterceptor';
 
 export default function Home() {
   return (
     <div className="relative min-h-screen bg-[#000000] flex flex-col justify-between overflow-hidden">
-      
-      {/* Invisible client interceptor logic running on page mount */}
-      <SessionInterceptor />
       
       {/* Backdrop cinematic ambient glow */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-40 bg-linear-to-b from-[#000000] via-[#323379]/20 to-[#000000]" />

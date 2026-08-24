@@ -3,13 +3,25 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Stack, ScrollArea, Text, Box, TextInput, ActionIcon } from "@mantine/core";
 import { Send } from "lucide-react";
+import { useParams } from "next/navigation";
+import { watchPartyGatewayEngine } from "@/store";
 
 interface FloatingMessage {
   username: string;
   text: string;
 }
 
+interface ChatMessageBroadcastPayload {
+  userId: string;
+  username: string;
+  message: string;
+  timestamp: number;
+}
+
 export default function FloatingChatOverlay() {
+  const params = useParams();
+  const roomCode = (params?.roomCode as string) || "";
+
   const [messages, setMessages] = useState<FloatingMessage[]>([
     { username: "System", text: "Connected to video stream layout overhead layer." }
   ]);
@@ -17,13 +29,46 @@ export default function FloatingChatOverlay() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Handler function to process incoming socket messages from other clients
+    const handleIncomingMessage = (data: ChatMessageBroadcastPayload) => {
+      setMessages((prev) => [
+        ...prev, 
+        { username: data.username, text: data.message }
+      ]);
+    };
+
+    // Attach ephemeral socket listener using your custom proxy interface
+    watchPartyGatewayEngine.on({ 
+      event: 'room:chat:broadcast', 
+      callback: handleIncomingMessage 
+    });
+
+    // Clean up proxy listener on unmount to prevent memory leaks
+    return () => {
+      watchPartyGatewayEngine.off({ 
+        event: 'room:chat:broadcast', 
+        callback: handleIncomingMessage 
+      });
+    };
+  }, [])
+
+  useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
   const handleSend = (e: React.SubmitEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
-    setMessages((prev) => [...prev, { username: "Me", text: input.trim() }]);
+    const cleanMessage = input.trim();
+    if (!cleanMessage || !roomCode) return;
+
+    // 1. Emit the frame up-pipe across the server socket cluster
+    watchPartyGatewayEngine.emitChatMessage({
+      roomCode: roomCode.toUpperCase(),
+      message: cleanMessage
+    });
+
+    // 2. Optimistically append your own message to the chat container UI
+    setMessages((prev) => [...prev, { username: "Me", text: cleanMessage }]);
     setInput("");
   };
 

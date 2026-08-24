@@ -16,26 +16,60 @@ export default function IntegratedWatchPartyPage() {
   const router = useRouter();
   const activeRoom = useAppSelector((state) => state.room.activeRoom);
   const { videoSize, videoOpacity } = useAppSelector((state) => state.room.uiOptions);
+  const userId = useAppSelector((state) => state.auth.userId);
   const searchParams = useSearchParams();
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const isAuthHydrated = useAppSelector((state) => state.auth.isAuthHydrated);
 
   // Fallback Hierarchy
   // Read from incoming webscoket activeRoom state, if empty fetch from the source URL (?mediaId=...)
   const queryMediaId = searchParams.get('mediaId');
   const queryPassword = searchParams.get('pwd') || '';
-  const resolvedMovieId = activeRoom?.moviedId || queryMediaId || '';
+  const resolvedMovieId = activeRoom?.movieId || queryMediaId || '';
 
   // Utilize the roomCode parameter to hook into our real websocket sync hub
   useEffect(() => {
-    if (!roomCode) return;
+    console.log("[PartyPage] Gateway effect entered", {
+      roomCode,
+      userId,
+      queryPassword,
+    });
 
-    // Connects to the 'sync-hub' namespace as defined in watch-party.gateway.ts
+    if (!isAuthHydrated) {
+      console.log(
+        '[PartyPage] Waiting for auth hydration'
+      );
+      return;
+    }
+
+    if (!roomCode || !userId || !isAuthenticated) {
+      console.log('[PartyPage] Gateway connection blocked', {
+        hasRoomCode: !!roomCode,
+        hasUserId: !!userId,
+        isAuthenticated,
+      });
+
+      return;
+    }
+
+    const rtcIdentity = `user_${Math.random().toString(36).substring(7)}`;
+
+    console.log("[PartyPage] Calling gatewayEngine.connect()", {
+      roomCode,
+      userId,
+      rtcIdentity,
+    });
+
     gatewayEngine.connect({
       dto: {
-        roomCode: roomCode,
-        passwordPlain: queryPassword, // Will be filled via join gate logic later
+        roomCode,
+        passwordPlain: queryPassword,
       },
-      rtcIdentity: `user_${Math.random().toString(36).substring(7)}`,
+      userId,
+      rtcIdentity,
     });
+
+    console.log("[PartyPage] gatewayEngine.connect() called");
 
     const handleRoomTerminated = (data: { message: string }) => {
       alert(data.message || 'The watch party session has been closed by the host.');
@@ -48,7 +82,7 @@ export default function IntegratedWatchPartyPage() {
       gatewayEngine.off({ event: 'room:terminated', callback: handleRoomTerminated})
       gatewayEngine.disconnect();
     };
-  }, [roomCode, queryPassword, gatewayEngine, router]);
+  }, [userId, roomCode, queryPassword, gatewayEngine, router, isAuthHydrated, isAuthenticated]);
 
   useEffect(() => {
     const handleWindowClose = () => {
@@ -60,6 +94,14 @@ export default function IntegratedWatchPartyPage() {
       window.removeEventListener("beforeunload", handleWindowClose);
     }
   }, [gatewayEngine]);
+
+  useEffect(() => {
+    console.log('[PartyPage] Auth state', {
+      userId,
+      roomCode,
+      isAuthenticated,
+    });
+  }, [userId, roomCode, isAuthenticated]);
 
   // Prevent downstream player crashing if neither the ws room state nor URL query params contain an ID
   if (!resolvedMovieId) {
