@@ -91,7 +91,7 @@ export class WatchPartyGatewayEngine {
   private setupGatewayListeners(): void {
     if (!this.socket) return;
 
-    // Direct structural mirrors of your gateway server emitters
+    // Direct structural mirrors of the gateway server emitters
     this.socket.on("room:state_update", this.handleRoomStateUpdate);
 
     this.socket.on("room:sync:broadcast", this.handlePlaybackBroadcast);

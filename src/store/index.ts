@@ -8,6 +8,7 @@ import { mediaApi } from "./services/mediaApi";
 import roomReducer from "@/store/slices/roomSlice";
 import { watchPartyApi } from "./services/watchPartyApi";
 import { WatchPartyGatewayEngine } from "@/core/services/WatchPartyGatewayEngine";
+import { mediaSessionApi } from "./services/mediaSessionApi";
 
 /**
  * CENTRAL REDUX SETUP
@@ -42,6 +43,7 @@ export const store = configureStore({
         [adminMediaApi.reducerPath]: adminMediaApi.reducer,
         [mediaApi.reducerPath]: mediaApi.reducer,
         [watchPartyApi.reducerPath]: watchPartyApi.reducer,
+        [mediaSessionApi.reducerPath]: mediaSessionApi.reducer,
     },
 
     // A "pipeline" that actions pass through before hitting the store
@@ -51,7 +53,13 @@ export const store = configureStore({
     middleware: (getDefaultMiddleware) => 
         getDefaultMiddleware({ 
             serializableCheck: false    // Prevents errors with fast engine-to-store snapshot synchronization
-        }).concat(authApi.middleware, adminMediaApi.middleware, mediaApi.middleware, watchPartyApi.middleware),    // Only API services append middleware here
+        }).concat(
+            authApi.middleware, 
+            adminMediaApi.middleware, 
+            mediaApi.middleware, 
+            watchPartyApi.middleware,
+            mediaSessionApi.middleware,
+        ),    // Only API services append middleware here
 });
 
 // A dynamic TypeScript type representing the entire state of the store
