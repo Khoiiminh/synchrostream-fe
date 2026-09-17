@@ -9,6 +9,8 @@ import WatchClientLeaf from "@/components/watch/WatchClientLeaf";
 import StyleControllerPanel from "@/components/watch-party/StyleControllerPanel";
 import FloatingChatOverlay from "@/components/watch-party/FloatingChatOverlay";
 import NavbarWrapper from "@/components/commons/NavbarWrapper";
+import SfuTransportTest from "@/components/watch-party/SfuTransportTest";
+import { useGetMediaSessionConnectionMutation } from "@/store/services/mediaSessionApi";
 
 export default function IntegratedWatchPartyPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -20,6 +22,14 @@ export default function IntegratedWatchPartyPage() {
   const searchParams = useSearchParams();
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const isAuthHydrated = useAppSelector((state) => state.auth.isAuthHydrated);
+  const [
+    getMediaSessionConnection,
+    {
+      data: mediaSessionConnection,
+      isLoading: isMediaSessionConnectionLoading,
+      error: mediaSessionConnectionError,
+    },
+  ] = useGetMediaSessionConnectionMutation();
 
   // Fallback Hierarchy
   // Read from incoming webscoket activeRoom state, if empty fetch from the source URL (?mediaId=...)
@@ -85,6 +95,58 @@ export default function IntegratedWatchPartyPage() {
   }, [userId, roomCode, queryPassword, gatewayEngine, router, isAuthHydrated, isAuthenticated]);
 
   useEffect(() => {
+    if (!activeRoom) {
+      return;
+    }
+
+    if (!activeRoom.mediaSessionId) {
+      return;
+    }
+
+    if (!isAuthHydrated) {
+      return;
+    }
+
+    if (!userId || !isAuthenticated) {
+      return;
+    }
+
+    const connectToMediaSession = async () => {
+      try {
+        console.log("[PartyPage] Resolving MediaSession connection", {
+          roomId: activeRoom.mediaSessionId,
+        });
+
+        const connection = await getMediaSessionConnection(
+          activeRoom.mediaSessionId,
+        ).unwrap();
+
+        console.log("[PartyPage] SFU connection blueprint received", {
+          mediaSessionId: connection.data.mediaSessionId,
+          participantId: connection.data.participantId,
+          sfuNodeId: connection.data.sfuNodeId,
+          signalingEndpoint: connection.data.signalingEndpoint,
+          hasSignalingToken: !!connection.data.signalingToken,
+        });
+      } catch (error) {
+        console.error(
+          "[PartyPage] Failed to obtain SFU connection blueprint",
+          error,
+        );
+      }
+    };
+
+    void connectToMediaSession();
+
+  }, [
+    activeRoom,
+    getMediaSessionConnection,
+    userId,
+    isAuthenticated,
+    isAuthHydrated,
+  ]);
+
+  useEffect(() => {
     const handleWindowClose = () => {
       gatewayEngine.disconnect();   // Explicitly cut socket link before tab thread dies
     };
@@ -115,6 +177,21 @@ export default function IntegratedWatchPartyPage() {
   }
   return (
     <>
+      <SfuTransportTest
+          mediaSessionId={
+              mediaSessionConnection?.data.mediaSessionId ?? ""
+          }
+          participantId={
+              mediaSessionConnection?.data.participantId ?? ""
+          }
+          signalingEndpoint={
+              mediaSessionConnection?.data.signalingEndpoint ?? ""
+          }
+          signalingToken={
+              mediaSessionConnection?.data.signalingToken ?? ""
+          }
+      />
+
       {/* Subtract the fixed 64px header thickness from your absolute layout background container */}
       <Box className="w-full h-[calc(100vh-64px)] bg-black overflow-hidden relative select-none">
         
