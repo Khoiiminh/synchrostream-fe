@@ -33,10 +33,14 @@ export default function IntegratedWatchPartyPage() {
 
   // Fallback Hierarchy
   // Read from incoming webscoket activeRoom state, if empty fetch from the source URL (?mediaId=...)
-  const queryMediaId = searchParams.get('mediaId');
   const queryPassword = searchParams.get('pwd') || '';
-  const resolvedMovieId = activeRoom?.movieId || queryMediaId || '';
+  const resolvedMovieId = activeRoom?.movieId || '';
 
+  console.log("[PartyPage] activeRoom state", {
+    activeRoom,
+    movieId: activeRoom?.movieId,
+    resolvedMovieId,
+  });
   // Utilize the roomCode parameter to hook into our real websocket sync hub
   useEffect(() => {
     console.log("[PartyPage] Gateway effect entered", {
@@ -170,7 +174,7 @@ export default function IntegratedWatchPartyPage() {
     return (
       <NavbarWrapper>
         <Box className="w-full h-[calc(100vh-64px)] bg-black flex items-center justify-center text-zinc-500">
-          <Text size="sm">Resolving movie identity reference indices...</Text>
+          <Text size="sm">Waiting for watch room state...</Text>
         </Box>
       </NavbarWrapper>
     )
