@@ -113,7 +113,13 @@ export class WatchPartyGatewayEngine {
   }
 
   private handleRoomStateUpdate = (snapshot: RoomSnapshotPayload): void => {
-    console.log("Room Sync Payload:", snapshot);
+      console.log("[WatchPartyGatewayEngine] Room Sync Payload", {
+          roomId: snapshot.roomId,
+          roomCode: snapshot.roomCode,
+          movieId: snapshot.movieId,
+          mediaSessionId: snapshot.mediaSessionId,
+          memberCount: snapshot.members.length,
+      });
       this.store.dispatch(syncRoomState(snapshot));
       this.startTelemetryHeartbeat(
         snapshot.roomId,
