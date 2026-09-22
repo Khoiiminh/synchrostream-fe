@@ -91,7 +91,7 @@ export class WatchPartyGatewayEngine {
   private setupGatewayListeners(): void {
     if (!this.socket) return;
 
-    // Direct structural mirrors of your gateway server emitters
+    // Direct structural mirrors of the gateway server emitters
     this.socket.on("room:state_update", this.handleRoomStateUpdate);
 
     this.socket.on("room:sync:broadcast", this.handlePlaybackBroadcast);
@@ -113,7 +113,13 @@ export class WatchPartyGatewayEngine {
   }
 
   private handleRoomStateUpdate = (snapshot: RoomSnapshotPayload): void => {
-    console.log("Room Sync Payload:", snapshot);
+      console.log("[WatchPartyGatewayEngine] Room Sync Payload", {
+          roomId: snapshot.roomId,
+          roomCode: snapshot.roomCode,
+          movieId: snapshot.movieId,
+          mediaSessionId: snapshot.mediaSessionId,
+          memberCount: snapshot.members.length,
+      });
       this.store.dispatch(syncRoomState(snapshot));
       this.startTelemetryHeartbeat(
         snapshot.roomId,

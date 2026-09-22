@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Box, AspectRatio, Text } from "@mantine/core";
 import { useAppSelector } from "@/store/hooks";
@@ -9,6 +9,10 @@ import WatchClientLeaf from "@/components/watch/WatchClientLeaf";
 import StyleControllerPanel from "@/components/watch-party/StyleControllerPanel";
 import FloatingChatOverlay from "@/components/watch-party/FloatingChatOverlay";
 import NavbarWrapper from "@/components/commons/NavbarWrapper";
+import SfuTransportTest from "@/components/watch-party/SfuTransportTest";
+import { useGetMediaSessionConnectionMutation } from "@/store/services/mediaSessionApi";
+import { ParticipantMedia, SfuMediaEngine, SfuMediaEngineStatus } from "@/core/services/SfuMediaEngine";
+import ParticipantMediaMesh from "@/components/watch-party/ParticipantMediaMesh";
 
 export default function IntegratedWatchPartyPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -20,14 +24,31 @@ export default function IntegratedWatchPartyPage() {
   const searchParams = useSearchParams();
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const isAuthHydrated = useAppSelector((state) => state.auth.isAuthHydrated);
+  const [
+    getMediaSessionConnection,
+    {
+      data: mediaSessionConnection,
+      isLoading: isMediaSessionConnectionLoading,
+      error: mediaSessionConnectionError,
+    },
+  ] = useGetMediaSessionConnectionMutation();
+
+    const sfuMediaEngineRef = useRef<SfuMediaEngine | null>(null);
+    const [participantMedia, setParticipantMedia] = useState<ParticipantMedia[]>([]);
+    const [sfuStatus, setSfuStatus] = useState<SfuMediaEngineStatus>('DISCONNECTED');
 
   // Fallback Hierarchy
   // Read from incoming webscoket activeRoom state, if empty fetch from the source URL (?mediaId=...)
-  const queryMediaId = searchParams.get('mediaId');
   const queryPassword = searchParams.get('pwd') || '';
-  const resolvedMovieId = activeRoom?.movieId || queryMediaId || '';
+  const resolvedMovieId = activeRoom?.movieId || '';
 
-  // Utilize the roomCode parameter to hook into our real websocket sync hub
+  console.log("[PartyPage] activeRoom state", {
+    activeRoom,
+    movieId: activeRoom?.movieId,
+    resolvedMovieId,
+  });
+
+  // Gateway connection effect
   useEffect(() => {
     console.log("[PartyPage] Gateway effect entered", {
       roomCode,
@@ -84,6 +105,157 @@ export default function IntegratedWatchPartyPage() {
     };
   }, [userId, roomCode, queryPassword, gatewayEngine, router, isAuthHydrated, isAuthenticated]);
 
+  // Get MediaSession connection
+ useEffect(() => {
+  if (!activeRoom) {
+      return;
+    }
+
+    if (!activeRoom.mediaSessionId) {
+      return;
+    }
+
+    if (!isAuthHydrated) {
+      return;
+    }
+
+    if (!userId || !isAuthenticated) {
+      return;
+    }
+
+    const connectToMediaSession = async () => {
+      try {
+        console.log("[PartyPage] Resolving MediaSession connection", {
+          roomId: activeRoom.mediaSessionId,
+        });
+
+        const connection = await getMediaSessionConnection(
+          activeRoom.mediaSessionId,
+        ).unwrap();
+
+        console.log("[PartyPage] SFU connection blueprint received", {
+          mediaSessionId: connection.data.mediaSessionId,
+          participantId: connection.data.participantId,
+          sfuNodeId: connection.data.sfuNodeId,
+          signalingEndpoint: connection.data.signalingEndpoint,
+          hasSignalingToken: !!connection.data.signalingToken,
+        });
+      } catch (error) {
+        console.error(
+          "[PartyPage] Failed to obtain SFU connection blueprint",
+          error,
+        );
+      }
+    };
+
+    void connectToMediaSession();
+  }, [
+    activeRoom,
+    getMediaSessionConnection,
+    userId,
+    isAuthenticated,
+    isAuthHydrated,
+  ]);
+
+  // Connect SfuMediaEngine using the connection
+  useEffect(() => {
+    if (!activeRoom) {
+      return;
+    }
+
+    if (!activeRoom.mediaSessionId) {
+      return;
+    }
+
+    if (!isAuthHydrated) {
+      return;
+    }
+
+    if (!userId || !isAuthenticated) {
+      return;
+    }
+
+    if (!mediaSessionConnection?.data) {
+      return;
+    }
+
+    const connection = mediaSessionConnection.data;
+
+    const engine = new SfuMediaEngine();
+
+    sfuMediaEngineRef.current = engine;
+
+    const removeMediaListener = engine.onMediaUpdate((media) => {
+      setParticipantMedia(media);
+    });
+
+    const removeStatusListener = engine.onStatusUpdate(
+      (status, error) => {
+        setSfuStatus(status);
+
+        if (error) {
+          console.error(
+            "[PartyPage] SFU media error",
+            error,
+          );
+        }
+      },
+    );
+
+    const connectToSfu = async () => {
+      try {
+        console.log(
+          "[PartyPage] Connecting production SFU media engine",
+          {
+            mediaSessionId: connection.mediaSessionId,
+            participantId: connection.participantId,
+            sfuNodeId: connection.sfuNodeId,
+            signalingEndpoint: connection.signalingEndpoint,
+          },
+        );
+
+        await engine.connect({
+          mediaSessionId: connection.mediaSessionId,
+          participantId: connection.participantId,
+          signalingEndpoint: connection.signalingEndpoint,
+          signalingToken: connection.signalingToken,
+        });
+
+        console.log(
+          "[PartyPage] Production SFU media engine connected",
+        );
+      } catch (error) {
+        console.error(
+          "[PartyPage] Failed to connect production SFU media engine",
+          error,
+        );
+      }
+    };
+
+    void connectToSfu();
+
+    return () => {
+      removeMediaListener();
+      removeStatusListener();
+
+      void engine.disconnect();
+
+      if (sfuMediaEngineRef.current === engine) {
+        sfuMediaEngineRef.current = null;
+      }
+
+      setParticipantMedia([]);
+      setSfuStatus("DISCONNECTED");
+    };
+  }, [
+    activeRoom,
+    mediaSessionConnection,
+    userId,
+    isAuthenticated,
+    isAuthHydrated,
+  ]);
+
+  // beforeunload effect
   useEffect(() => {
     const handleWindowClose = () => {
       gatewayEngine.disconnect();   // Explicitly cut socket link before tab thread dies
@@ -95,6 +267,7 @@ export default function IntegratedWatchPartyPage() {
     }
   }, [gatewayEngine]);
 
+  // Auth logging effect
   useEffect(() => {
     console.log('[PartyPage] Auth state', {
       userId,
@@ -108,45 +281,29 @@ export default function IntegratedWatchPartyPage() {
     return (
       <NavbarWrapper>
         <Box className="w-full h-[calc(100vh-64px)] bg-black flex items-center justify-center text-zinc-500">
-          <Text size="sm">Resolving movie identity reference indices...</Text>
+          <Text size="sm">Waiting for watch room state...</Text>
         </Box>
       </NavbarWrapper>
     )
   }
   return (
     <>
+      <ParticipantMediaMesh
+        members={activeRoom?.members ?? []}
+        participantMedia={participantMedia}
+        localParticipantId={
+          mediaSessionConnection?.data.participantId ?? ""
+        }
+        videoSize={videoSize}
+        videoOpacity={videoOpacity}
+      />
+
       {/* Subtract the fixed 64px header thickness from your absolute layout background container */}
       <Box className="w-full h-[calc(100vh-64px)] bg-black overflow-hidden relative select-none">
         
         {/* BASE LAYER: Standalone film stream component */}
         <Box className="w-full h-full absolute inset-0 z-0 pointer-events-auto">
           <WatchClientLeaf mediaId={resolvedMovieId} isPartyMode={true} />
-        </Box>
-
-        {/* OVERLAY LAYER 1: WebRTC Video Call Frame Mesh */}
-        <Box 
-          className="absolute top-6 left-6 z-40 flex flex-wrap gap-3 pointer-events-none"
-          style={{ maxWidth: "calc(100% - 48px)" }}
-        >
-          {activeRoom?.members.map((member) => (
-            <Box
-              key={member.userId}
-              className="rounded-lg overflow-hidden border border-white/10 bg-zinc-950 shadow-xl pointer-events-auto transition-all duration-200"
-              style={{
-                width: videoSize,
-                height: (videoSize * 3) / 4,
-                opacity: videoOpacity,
-              }}
-            >
-              <AspectRatio ratio={4 / 3} className="w-full h-full relative">
-                <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
-                  <Text size="10px" color="dimmed" className="font-mono">
-                    {member.username}
-                  </Text>
-                </div>
-              </AspectRatio>
-            </Box>
-          ))}
         </Box>
 
         {/* OVERLAY LAYER 2: Floating Style Adjustments HUD Panel */}

@@ -19,7 +19,9 @@ export interface CreateRoomResponse {
 }
 
 export const watchPartyApi = createApi({
+
   reducerPath: 'watchPartyApi',
+
   baseQuery: fetchBaseQuery({
     baseUrl: '/v1/watch-party',
     prepareHeaders: (headers) => {
@@ -30,6 +32,7 @@ export const watchPartyApi = createApi({
       return headers;
     }
   }),
+
   endpoints: (builder) => ({
     // GET watch-party/rtc-token?roomCode=XXXXXX
     getLiveKitRtcToken: builder.query<RtcTokenResponse, { roomCode: string }>({
@@ -46,8 +49,11 @@ export const watchPartyApi = createApi({
         method: 'POST',
         body,
       })
-    })
+    }),
   }),
 });
 
-export const { useGetLiveKitRtcTokenQuery, useCreateRoomMutation } = watchPartyApi;
+export const { 
+  useGetLiveKitRtcTokenQuery, 
+  useCreateRoomMutation, 
+} = watchPartyApi;

@@ -21,6 +21,7 @@ export interface RoomSnapshotPayload {
   passwordPlain: string;
   ownerId: string;
   movieId: string; 
+  mediaSessionId: string;
   playback: PlaybackStateSnapshot;
   occupancy: {
     current: number;

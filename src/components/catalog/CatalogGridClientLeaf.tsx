@@ -62,7 +62,7 @@ export default function CatalogGridClientLeaf() {
       }).unwrap();
 
       setModalOpened(false);
-      router.push(`/party/${generatedCode}?mediaId=${selectedMovieId}&pwd=${encodeURIComponent(cleanPassword)}`);
+      router.push(`/party/${generatedCode}?pwd=${encodeURIComponent(cleanPassword)}`);
     } catch (err: unknown) {
       // Accessing the RTK query error response body payload
       const queryError = err as { data?: { message?: string } };
