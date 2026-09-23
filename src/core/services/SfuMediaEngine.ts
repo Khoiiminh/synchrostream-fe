@@ -165,6 +165,7 @@ export class SfuMediaEngine {
 
   private readonly mediaListeners = new Set<MediaListener>();
   private readonly statusListeners = new Set<StatusListener>();
+  private readonly localStreamListeners = new Set<(stream: MediaStream | null) => void>();
 
   private config: SfuMediaEngineConfig | null = null;
 
@@ -178,6 +179,19 @@ export class SfuMediaEngine {
   public getLocalStream(): MediaStream | null {
     return this.localStream;
   }
+
+  public onLocalStreamUpdate(
+    listener: (stream: MediaStream | null) => void,
+    ): () => void {
+    this.localStreamListeners.add(listener);
+
+    // Immediately provide the current value.
+    listener(this.localStream);
+
+    return () => {
+        this.localStreamListeners.delete(listener);
+    };
+    }
 
   public getStatus(): SfuMediaEngineStatus {
     if (!this.socket) {
@@ -296,13 +310,41 @@ export class SfuMediaEngine {
 
       this.localStream = stream;
 
+        console.log("[SFU DEBUG] LOCAL STREAM CREATED", {
+            streamId: stream.id,
+            audio: stream.getAudioTracks().map((t) => ({
+                id: t.id,
+                readyState: t.readyState,
+                enabled: t.enabled,
+            })),
+            video: stream.getVideoTracks().map((t) => ({
+                id: t.id,
+                readyState: t.readyState,
+                enabled: t.enabled,
+            })),
+        });
+
+        for (const listener of this.localStreamListeners) {
+            listener(stream);
+        }
+
       const audioTrack = stream.getAudioTracks()[0];
+
+      console.log("[SFU DEBUG] PRODUCING AUDIO", {
+            trackId: audioTrack?.id,
+            readyState: audioTrack?.readyState,
+        });
 
       if (audioTrack) {
         await this.produceTrack(audioTrack);
       }
 
       const videoTrack = stream.getVideoTracks()[0];
+      
+      console.log("[SFU DEBUG] PRODUCING VIDEO", {
+            trackId: videoTrack?.id,
+            readyState: videoTrack?.readyState,
+        });
 
       if (videoTrack) {
         await this.produceTrack(videoTrack);
