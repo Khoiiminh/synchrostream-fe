@@ -2,14 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Box, AspectRatio, Text } from "@mantine/core";
+import { Box, Text } from "@mantine/core";
 import { useAppSelector } from "@/store/hooks";
 import { useEngine } from "@/context/EngineContext";
 import WatchClientLeaf from "@/components/watch/WatchClientLeaf";
 import StyleControllerPanel from "@/components/watch-party/StyleControllerPanel";
 import FloatingChatOverlay from "@/components/watch-party/FloatingChatOverlay";
 import NavbarWrapper from "@/components/commons/NavbarWrapper";
-import SfuTransportTest from "@/components/watch-party/SfuTransportTest";
 import { useGetMediaSessionConnectionMutation } from "@/store/services/mediaSessionApi";
 import { ParticipantMedia, SfuMediaEngine, SfuMediaEngineStatus } from "@/core/services/SfuMediaEngine";
 import ParticipantMediaMesh from "@/components/watch-party/ParticipantMediaMesh";
@@ -36,6 +35,7 @@ export default function IntegratedWatchPartyPage() {
     const sfuMediaEngineRef = useRef<SfuMediaEngine | null>(null);
     const [participantMedia, setParticipantMedia] = useState<ParticipantMedia[]>([]);
     const [sfuStatus, setSfuStatus] = useState<SfuMediaEngineStatus>('DISCONNECTED');
+    const [localStream, setLocalStream] = useState<MediaStream | null>(null);
 
   // Fallback Hierarchy
   // Read from incoming webscoket activeRoom state, if empty fetch from the source URL (?mediaId=...)
@@ -202,6 +202,17 @@ export default function IntegratedWatchPartyPage() {
       },
     );
 
+    const removeLocalStreamListener = engine.onLocalStreamUpdate((stream) => {
+        console.log("[PartyPage DEBUG] LOCAL STREAM RECEIVED", {
+          streamId: stream?.id ?? null,
+          audioTracks: stream?.getAudioTracks().length ?? 0,
+          videoTracks: stream?.getVideoTracks().length ?? 0,
+        });
+
+        setLocalStream(stream);
+      });
+
+
     const connectToSfu = async () => {
       try {
         console.log(
@@ -237,6 +248,7 @@ export default function IntegratedWatchPartyPage() {
     return () => {
       removeMediaListener();
       removeStatusListener();
+      removeLocalStreamListener();
 
       void engine.disconnect();
 
@@ -245,6 +257,7 @@ export default function IntegratedWatchPartyPage() {
       }
 
       setParticipantMedia([]);
+      setLocalStream(null);
       setSfuStatus("DISCONNECTED");
     };
   }, [
@@ -291,6 +304,7 @@ export default function IntegratedWatchPartyPage() {
       <ParticipantMediaMesh
         members={activeRoom?.members ?? []}
         participantMedia={participantMedia}
+        localStream={localStream}
         localParticipantId={
           mediaSessionConnection?.data.participantId ?? ""
         }

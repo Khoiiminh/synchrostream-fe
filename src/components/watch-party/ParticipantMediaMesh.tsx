@@ -6,6 +6,7 @@ import { AspectRatio, Box, Text } from "@mantine/core";
 interface ParticipantMediaMeshProp {
     members: ParticipantNode[];
     participantMedia: ParticipantMedia[];
+    localStream: MediaStream | null;
     localParticipantId: string;
     videoSize: number;
     videoOpacity: number;
@@ -197,19 +198,17 @@ function ParticipantMediaTile({
 export default function ParticipantMediaMesh({
     members,
     participantMedia,
+    localStream,
     localParticipantId,
     videoSize,
     videoOpacity,
 }: ParticipantMediaMeshProp) {
-    const mediaByParticipantId = useMemo(() => {
-        const map = new Map<string, ParticipantMedia>();
-
-        participantMedia.forEach((media) => {
-            map.set(media.participantId, media);
-        });
-
-        return map;
-    }, [participantMedia]);
+    const mediaByParticipantId = new Map(
+        participantMedia.map((media) => [
+            media.participantId,
+            media,
+        ])
+    );
 
     return (
         <Box
@@ -219,21 +218,34 @@ export default function ParticipantMediaMesh({
             }}
         >
             {members.map((member) => {
-                const media =  mediaByParticipantId.get(
-                    member.participantId,
-                ) ?? null;
+                const isLocalParticipant = member.participantId === localParticipantId;
+
+                let media = mediaByParticipantId.get(member.participantId) ?? null;
+
+                if (isLocalParticipant && localStream) {
+                    const videoTrack = localStream.getVideoTracks()[0];
+
+                    if (videoTrack) {
+                        const cameraOnlyStream = new MediaStream([videoTrack]);
+
+                        media = {
+                            participantId: localParticipantId,
+                            stream: cameraOnlyStream,
+                            hasAudio: false,
+                            hasVideo: true,
+                        };
+                    }
+                }
 
                 return (
-                <ParticipantMediaTile
+                    <ParticipantMediaTile
                     key={member.participantId}
                     member={member}
                     media={media}
-                    isLocalParticipant={
-                        member.participantId === localParticipantId
-                    }
+                    isLocalParticipant={isLocalParticipant}
                     videoSize={videoSize}
                     videoOpacity={videoOpacity}
-                />
+                    />
                 );
             })}
         </Box>
