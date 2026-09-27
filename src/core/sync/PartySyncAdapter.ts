@@ -5,7 +5,7 @@ import { ISyncAdapter, QualityLevel } from "./ISyncAdapter";
 import { PlaybackCoordinator } from "./PlaybackCoordinator";
 
 export class PartySyncAdapter implements ISyncAdapter {
-    private readonly coordinator: PlaybackCoordinator;
+    private coordinator: PlaybackCoordinator | null = null;
     
     constructor(
         private readonly localEngine: SyncEngine,
@@ -17,8 +17,6 @@ export class PartySyncAdapter implements ISyncAdapter {
         private readonly ownerId: string,
         private readonly remotePlaybackGuard: RemotePlaybackGuard,
     ) {
-        this.coordinator = new PlaybackCoordinator(this.localEngine, this.gateway, this.userId, this.remotePlaybackGuard);
-        
         console.log("[PartySyncAdapter] Created", {
             userId: this.userId,
             ownerId: this.ownerId,
@@ -26,17 +24,33 @@ export class PartySyncAdapter implements ISyncAdapter {
         });
     }
 
+    private createCoordinator(): PlaybackCoordinator {
+        return new PlaybackCoordinator(
+            this.localEngine,
+            this.gateway,
+            this.userId,
+            this.remotePlaybackGuard,
+        );
+    }
+
     attachVideo(video: HTMLVideoElement): void {
         this.localEngine.attachElement({
             element: video,
-            streamUrl: this.streamUrl
+            streamUrl: this.streamUrl,
         });
 
+        if (this.coordinator) {
+            this.coordinator.dispose();
+        }
+
+        this.coordinator = this.createCoordinator();
         this.coordinator.start();
     }
     
     detachVideo(): void {
-        this.coordinator.stop();
+        if (this.coordinator) {
+            this.coordinator.stop();
+        }
 
         this.localEngine.detachElement();
     }
@@ -159,8 +173,11 @@ export class PartySyncAdapter implements ISyncAdapter {
     }
 
     dispose(): void {
-        this.coordinator.dispose();
-        
+        if (this.coordinator) {
+            this.coordinator.dispose();
+            this.coordinator = null;
+        }
+
         this.localEngine.dispose();
     }
 

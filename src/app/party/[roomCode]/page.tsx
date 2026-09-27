@@ -73,12 +73,9 @@ export default function IntegratedWatchPartyPage() {
       return;
     }
 
-    const rtcIdentity = `user_${Math.random().toString(36).substring(7)}`;
-
     console.log("[PartyPage] Calling gatewayEngine.connect()", {
       roomCode,
       userId,
-      rtcIdentity,
     });
 
     gatewayEngine.connect({
@@ -87,7 +84,6 @@ export default function IntegratedWatchPartyPage() {
         passwordPlain: queryPassword,
       },
       userId,
-      rtcIdentity,
     });
 
     console.log("[PartyPage] gatewayEngine.connect() called");

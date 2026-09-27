@@ -4,7 +4,6 @@ export interface ParticipantNode {
   participantId: string;
   userId: string;
   username: string;
-  rtcIdentity: string;
   hasControlPrivilege: boolean;
   latencyScore: number;
 }
