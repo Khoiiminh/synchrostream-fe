@@ -16,7 +16,6 @@ interface JoinRoomDto {
 
 interface ConnectionHandshakePayload {
   dto: JoinRoomDto;
-  rtcIdentity: string;
   userId: string;
 }
 
@@ -58,7 +57,6 @@ export class WatchPartyGatewayEngine {
         ? localStorage.getItem("access_token")
         : null;
     const { roomCode, passwordPlain } = payload.dto;
-    const rtcIdentity = payload.rtcIdentity;
     this.currentUserId = payload.userId;
 
     const baseUrl =
@@ -83,7 +81,6 @@ export class WatchPartyGatewayEngine {
           roomCode: roomCode.trim().toUpperCase(),
           passwordPlain: passwordPlain,
         },
-        rtcIdentity: rtcIdentity,
       });
     });
   }

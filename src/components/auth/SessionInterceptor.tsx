@@ -60,8 +60,13 @@ export function SessionInterceptor() {
    * Phase 3:
    * Server confirmed the JWT.
    */
+  const currentUserId = useAppSelector((state) => state.auth.userId); // Add this selector at the top of your component
+
   useEffect(() => {
     if (!response?.success) return;
+
+    // Guard: Only dispatch if the profile data is different from what's already in Redux
+    if (currentUserId === response.data.id) return;
 
     console.log(
       '[SessionInterceptor] /me success',
@@ -75,8 +80,7 @@ export function SessionInterceptor() {
       }),
     );
 
-    dispatch(setAuthHydrated());
-  }, [response, dispatch]);
+  }, [response, dispatch, currentUserId]);
 
   /*
    * Phase 4:
