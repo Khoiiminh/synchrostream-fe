@@ -304,7 +304,11 @@ export class SfuMediaEngine {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
+        audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+        },
         video: true,
       });
 
@@ -333,6 +337,8 @@ export class SfuMediaEngine {
       console.log("[SFU DEBUG] PRODUCING AUDIO", {
             trackId: audioTrack?.id,
             readyState: audioTrack?.readyState,
+            settings: audioTrack?.getSettings(),
+            capabilities: audioTrack?.getCapabilities(),
         });
 
       if (audioTrack) {

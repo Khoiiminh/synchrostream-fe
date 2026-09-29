@@ -9,23 +9,35 @@ export function HeaderSignInButton() {
 
   return (
     <>
-      <Button 
-        onClick={open} 
-        className="bg-[#4B4DB5] hover:bg-[#323379] transition-all text-white font-medium px-5 rounded"
+      <Button
+        onClick={open}
+        radius="xl"
+        className="border border-white/15 bg-white/6 px-5 font-medium text-white backdrop-blur-md transition-colors hover:bg-white/[0.12]"
       >
-        Sign In
+        Sign in
       </Button>
 
-      <Modal 
-        opened={opened} 
-        onClose={close} 
-        title="Access SynchroStream Gateway" 
+      <Modal
+        opened={opened}
+        onClose={close}
+        title="Sign in to SynchroStream"
         centered
         size="md"
-        radius="md"
+        radius="lg"
+        overlayProps={{ backgroundOpacity: 0.7, blur: 6 }}
         styles={{
-          content: { backgroundColor: '#000000', border: '1px solid #323379', color: '#ffffff' },
-          header: { backgroundColor: '#000000', color: '#ffffff', borderBottom: '1px solid #27272a' },
+          content: {
+            backgroundColor: '#0B0B14',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 0 0 1px rgba(99,102,241,0.15), 0 20px 60px -20px rgba(99,102,241,0.35)',
+            color: '#ffffff',
+          },
+          header: {
+            backgroundColor: '#0B0B14',
+            color: '#ffffff',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+          },
+          title: { fontWeight: 600 },
         }}
       >
         <AuthModalForms onSuccess={close} />

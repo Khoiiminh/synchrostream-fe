@@ -8,71 +8,78 @@ import { useLazyGetMeQuery } from '@/store/services/authApi';
 
 export function LandingHeroActions() {
   const [opened, { open, close }] = useDisclosure(false);
-const router = useRouter();
+  const router = useRouter();
 
-  // 1. Use a LAZY query. This gives you a trigger function 'triggerGetMe'
-  // and doesn't run automatically. This is much better for "Click to check" logic.
+  // Lazy query: only checked when the user actually clicks, not on mount.
   const [triggerGetMe, { isFetching }] = useLazyGetMeQuery();
 
   const handleGetStartedClick = async () => {
     const localToken = localStorage.getItem('access_token');
-    
+
     if (!localToken) {
       open();
       return;
     }
 
-    // 2. Trigger the check manually.
     try {
       const result = await triggerGetMe().unwrap();
-      
+
       if (result?.success && result?.data?.role) {
         const userRole = result.data.role.toLowerCase();
         router.push(`/dashboard/${userRole}`);
       }
     } catch (err) {
-      // 3. Handle failure (Invalid/Expired token)
+      // Token is invalid or expired — clear it and let the user sign in again.
       localStorage.removeItem('access_token');
       open();
     }
   };
 
-return (
+  return (
     <>
-      <div className="pt-4 text-center">
-        <Group justify="center">
-          <Button 
-            size="xl" 
-            onClick={handleGetStartedClick}
-            disabled={isFetching}
-            className="bg-[#6366F1] hover:bg-[#4B4DB5] text-white font-bold px-10 py-4 text-xl rounded shadow-lg shadow-[#6366F1]/20 transition-transform active:scale-95 disabled:opacity-70"
-          >
-            {isFetching ? (
-              <Group gap="xs">
-                <Loader size="sm" color="white" />
-                <span>Verifying Session...</span>
-              </Group>
-            ) : (
-              'Get Started'
-            )}
-          </Button>
-        </Group>
-        <Text size="xs" className="text-zinc-500 mt-3">
-          Ready to start or join a theater session? Create an account now.
+      <div className="flex flex-col items-center pt-2">
+        <Button
+          size="xl"
+          radius="xl"
+          onClick={handleGetStartedClick}
+          disabled={isFetching}
+          className="border-0 bg-linear-to-r from-[#6366F1] to-[#8B5CF6] px-10 py-4 text-lg font-semibold text-white shadow-[0_0_40px_-8px_rgba(99,102,241,0.6)] transition-all duration-200 hover:brightness-110 active:scale-[0.97] disabled:opacity-70"
+        >
+          {isFetching ? (
+            <Group gap="xs">
+              <Loader size="sm" color="white" />
+              <span>Checking your session…</span>
+            </Group>
+          ) : (
+            'Get started'
+          )}
+        </Button>
+        <Text size="sm" className="mt-4 text-[#87879A]">
+          Start or join a watch session — free to sign up.
         </Text>
       </div>
 
-      {/* Centralized Authentication Overlay Modal Boundary Layer */}
-      <Modal 
-        opened={opened} 
-        onClose={close} 
-        title="Access SynchroStream Gateway" 
+      <Modal
+        opened={opened}
+        onClose={close}
+        title="Sign in to SynchroStream"
         centered
         size="md"
-        radius="md"
+        radius="lg"
+        overlayProps={{ backgroundOpacity: 0.7, blur: 6 }}
         styles={{
-          content: { backgroundColor: '#000000', border: '1px solid #323379', color: '#ffffff' },
-          header: { backgroundColor: '#000000', color: '#ffffff', borderBottom: '1px solid #27272a' },
+          content: {
+            backgroundColor: '#0B0B14',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 0 0 1px rgba(99,102,241,0.15), 0 20px 60px -20px rgba(99,102,241,0.35)',
+            color: '#ffffff',
+          },
+          header: {
+            backgroundColor: '#0B0B14',
+            color: '#ffffff',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+          },
+          title: { fontWeight: 600 },
         }}
       >
         <AuthModalForms onSuccess={close} />
