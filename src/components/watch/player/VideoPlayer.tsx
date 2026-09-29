@@ -59,6 +59,31 @@ export default function VideoPlayer({
       return;
     }
 
+    console.log("[AUDIO DEBUG]", {
+      videoVolume: videoElement.volume,
+      muted: videoElement.muted,
+    });
+
+    const audioSession = (
+      navigator as Navigator & {
+        audioSession?: {
+          type?: string;
+          state?: string;
+        };
+      }
+    ).audioSession;
+
+    if (audioSession) {
+      console.log("[AUDIO SESSION DEBUG]", {
+        type: audioSession.type,
+        state: audioSession.state,
+      });
+    } else {
+      console.log(
+        "[AUDIO SESSION DEBUG] Audio Session API is not supported.",
+      );
+    }
+
     controller.attach(videoElement);
 
     const handleDurationChange = () => {
@@ -150,6 +175,29 @@ export default function VideoPlayer({
     };
   }, []);
 
+  useEffect(() => {
+    if (!videoElement) {
+      return;
+    }
+
+    const logAudioState = () => {
+      console.log("[AUDIO DEBUG]", {
+        videoVolume: videoElement.volume,
+        muted: videoElement.muted,
+      });
+    };
+
+    logAudioState();
+
+    const interval = window.setInterval(() => {
+      logAudioState();
+    }, 1000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [videoElement]);
+
   const handleMouseMove = () => {
     setShowControls(true);
 
@@ -179,6 +227,11 @@ export default function VideoPlayer({
 
     if (videoRef.current) {
       videoRef.current.volume = value;
+
+      console.log("[AUDIO DEBUG]", {
+        videoVolume: videoRef.current.volume,
+        muted: videoRef.current.muted,
+      });
     }
 
     if (value > 0 && isMuted) {
@@ -202,6 +255,11 @@ export default function VideoPlayer({
 
     if (videoRef.current) {
       videoRef.current.volume = 0;
+
+      console.log("[AUDIO DEBUG]", {
+        videoVolume: videoRef.current.volume,
+        muted: videoRef.current.muted,
+      });
     }
   };
 
