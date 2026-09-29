@@ -1,6 +1,6 @@
 import { ParticipantNode } from "@/store/slices/roomSlice";
 import { ParticipantMedia } from "@/core/services/SfuMediaEngine";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { AspectRatio, Box, Text } from "@mantine/core";
 
 interface ParticipantMediaMeshProp {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Box, Text } from "@mantine/core";
 import { useAppSelector } from "@/store/hooks";
@@ -12,12 +12,27 @@ import NavbarWrapper from "@/components/commons/NavbarWrapper";
 import { useGetMediaSessionConnectionMutation } from "@/store/services/mediaSessionApi";
 import { ParticipantMedia, SfuMediaEngine, SfuMediaEngineStatus } from "@/core/services/SfuMediaEngine";
 import ParticipantMediaMesh from "@/components/watch-party/ParticipantMediaMesh";
+  
+/**
+ * -------------------------------------------------------------
+ *                    memoized components
+ * -------------------------------------------------------------
+ */
+const MemoizedParticipantMediaMesh = memo(ParticipantMediaMesh);
+const MemoizedWatchClientLeaf = memo(WatchClientLeaf);
+const MemoizedStyleControllerPanel = memo(StyleControllerPanel);
+const MemoizedFloatingChatOverlay = memo(FloatingChatOverlay);
+
 
 export default function IntegratedWatchPartyPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
   const { gatewayEngine } = useEngine();
   const router = useRouter();
   const activeRoom = useAppSelector((state) => state.room.activeRoom);
+
+  const mediaSessionId = activeRoom?.mediaSessionId;
+  const roomMembers = activeRoom?.members;
+
   const { videoSize, videoOpacity } = useAppSelector((state) => state.room.uiOptions);
   const userId = useAppSelector((state) => state.auth.userId);
   const searchParams = useSearchParams();
@@ -103,11 +118,8 @@ export default function IntegratedWatchPartyPage() {
 
   // Get MediaSession connection
  useEffect(() => {
-  if (!activeRoom) {
-      return;
-    }
 
-    if (!activeRoom.mediaSessionId) {
+    if (!mediaSessionId) {
       return;
     }
 
@@ -122,11 +134,11 @@ export default function IntegratedWatchPartyPage() {
     const connectToMediaSession = async () => {
       try {
         console.log("[PartyPage] Resolving MediaSession connection", {
-          roomId: activeRoom.mediaSessionId,
+          roomId: mediaSessionId,
         });
 
         const connection = await getMediaSessionConnection(
-          activeRoom.mediaSessionId,
+          mediaSessionId,
         ).unwrap();
 
         console.log("[PartyPage] SFU connection blueprint received", {
@@ -146,7 +158,7 @@ export default function IntegratedWatchPartyPage() {
 
     void connectToMediaSession();
   }, [
-    activeRoom,
+    mediaSessionId,
     getMediaSessionConnection,
     userId,
     isAuthenticated,
@@ -155,11 +167,8 @@ export default function IntegratedWatchPartyPage() {
 
   // Connect SfuMediaEngine using the connection
   useEffect(() => {
-    if (!activeRoom) {
-      return;
-    }
 
-    if (!activeRoom.mediaSessionId) {
+    if (!mediaSessionId) {
       return;
     }
 
@@ -257,7 +266,7 @@ export default function IntegratedWatchPartyPage() {
       setSfuStatus("DISCONNECTED");
     };
   }, [
-    activeRoom,
+    mediaSessionId,
     mediaSessionConnection,
     userId,
     isAuthenticated,
@@ -297,8 +306,8 @@ export default function IntegratedWatchPartyPage() {
   }
   return (
     <>
-      <ParticipantMediaMesh
-        members={activeRoom?.members ?? []}
+      <MemoizedParticipantMediaMesh
+        members={roomMembers ?? []}
         participantMedia={participantMedia}
         localStream={localStream}
         localParticipantId={
@@ -313,14 +322,14 @@ export default function IntegratedWatchPartyPage() {
         
         {/* BASE LAYER: Standalone film stream component */}
         <Box className="w-full h-full absolute inset-0 z-0 pointer-events-auto">
-          <WatchClientLeaf mediaId={resolvedMovieId} isPartyMode={true} />
+          <MemoizedWatchClientLeaf mediaId={resolvedMovieId} isPartyMode={true} />
         </Box>
 
         {/* OVERLAY LAYER 2: Floating Style Adjustments HUD Panel */}
-        <StyleControllerPanel />
+        <MemoizedStyleControllerPanel />
 
         {/* OVERLAY LAYER 3: Boundary-less Floating Transparent Chat */}
-        <FloatingChatOverlay />
+        <MemoizedFloatingChatOverlay />
 
       </Box>
     </>
