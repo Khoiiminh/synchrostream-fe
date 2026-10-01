@@ -41,22 +41,48 @@ interface ChatMessagePayload {
   timestamp: number;
 }
 
-type GatewayEventCallback = (...args: unknown[]) => void;
-
-interface GatewayEventListener {
-  event: string;
-  callback: GatewayEventCallback;
+interface GatewayEventMap {
+  "room:state_update": RoomSnapshotPayload;
+  "room:sync:broadcast": SyncPulseBroadcastPayload;
+  "room:member_left": { userId: string };
+  "room:error": RoomErrorPayload;
+  "room:telemetry:pong": TelemetryPongPayload;
+  "room:chat:broadcast": ChatMessagePayload;
+  "room:terminated": { message: string };
 }
 
-interface GatewayEventSubscription {
-  event: string;
-  callback?: GatewayEventCallback;
+interface GatewayClientEventMap {
+  "room:connect": {
+    dto: JoinRoomDto;
+  };
+  "room:sync:pulse": {
+    roomId: string;
+    roomCode: string;
+    action: "PLAY" | "PAUSE" | "SEEK";
+    playhead: number;
+  };
+  "room:chat:message": {
+    roomCode: string;
+    message: string;
+  };
+  "room:telemetry:ping": {
+    roomId: string;
+    userId: string;
+    clientTimestamp: number;
+  };
 }
+
+type GatewayServerEvents = {
+  [K in keyof GatewayEventMap]: (data: GatewayEventMap[K]) => void;
+}
+
+type GatewayClientEvents = {
+  [K in keyof GatewayClientEventMap]: (data: GatewayClientEventMap[K]) => void;
+};
 
 export class WatchPartyGatewayEngine {
-  private socket: Socket | null = null;
+  private socket: Socket<GatewayServerEvents, GatewayClientEvents> | null = null;
   private telemetryIntervalId: NodeJS.Timeout | null = null;
-  private queueListeners: GatewayEventListener[] = [];
   private currentUserId: string | null = null;
 
   constructor(private readonly store: Store) {}
@@ -116,9 +142,6 @@ export class WatchPartyGatewayEngine {
     // Emits the incoming payload straight through the custom proxy event listener pipeline
     this.socket.on("room:chat:broadcast", this.handleChatBroadcast);
 
-    this.queueListeners.forEach((p) => {
-      this.socket?.on(p.event, p.callback);
-    })
   }
 
   private handleRoomStateUpdate = (snapshot: RoomSnapshotPayload): void => {
@@ -259,23 +282,29 @@ export class WatchPartyGatewayEngine {
    * Allows React components to attach ephemeral listeners for events
    * that require UI side-effects (like routing/alerts) rather than Redux state changes.
    */
-  public on(p: GatewayEventListener): () => void {
-    this.queueListeners.push(p);
-
-    if (this.socket) {
-      this.socket.on(p.event, p.callback);
+  private addSocketListener(
+    event: keyof GatewayEventMap,
+    callback: GatewayServerEvents[keyof GatewayEventMap],
+  ): void {
+    this.socket?.on(
+      event,
+      callback as never,
+    );
+  }
+  public on<K extends keyof GatewayEventMap>(
+    p: {
+      event: K,
+      callback: (data: GatewayEventMap[K]) => void;
+    }
+  ): () => void {
+    if (!this.socket) {
+      return () => {};
     }
 
-    return () => {
-      this.off(p)
-    };
-  }
+    this.socket.on(p.event, p.callback as never);
 
-  public off(p: GatewayEventSubscription): void {
-    this.queueListeners = this.queueListeners.filter(
-      (listener) => !(listener.event === p.event && (!p.callback || listener.callback === p.callback)),
-    );
-    
-    this.socket?.off(p.event, p.callback);
+    return () => {
+      this.socket?.off(p.event, p.callback as never);
+    };
   }
 }

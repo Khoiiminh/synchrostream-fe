@@ -120,42 +120,13 @@ export default function FloatingChatOverlay() {
       ]);
     };
 
-    watchPartyGatewayEngine.on({
+    const removeChatListener = watchPartyGatewayEngine.on({
       event: "room:chat:broadcast",
       callback: handleIncomingMessage,
     });
 
     return () => {
-      watchPartyGatewayEngine.off({
-        event: "room:chat:broadcast",
-        callback: handleIncomingMessage,
-      });
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleIncomingMessage = (
-      data: ChatMessageBroadcastPayload,
-    ) => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          username: data.username,
-          text: data.message,
-        },
-      ]);
-    };
-
-    watchPartyGatewayEngine.on({
-      event: "room:chat:broadcast",
-      callback: handleIncomingMessage,
-    });
-
-    return () => {
-      watchPartyGatewayEngine.off({
-        event: "room:chat:broadcast",
-        callback: handleIncomingMessage,
-      });
+      removeChatListener();
     };
   }, []);
 
