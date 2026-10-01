@@ -12,7 +12,7 @@ export function HeaderSignInButton() {
       <Button
         onClick={open}
         radius="xl"
-        className="border border-white/15 bg-white/6 px-5 font-medium text-white backdrop-blur-md transition-colors hover:bg-white/[0.12]"
+        className="border border-white/15 bg-white/6 px-5 font-medium text-white backdrop-blur-md transition-colors hover:bg-white/12"
       >
         Sign in
       </Button>

@@ -1,17 +1,11 @@
 import * as mediasoupClient from "mediasoup-client";
+import { ParticipantMedia } from "../types/ParticipantMedia.type";
 
 export interface SfuMediaEngineConfig {
     mediaSessionId: string;
     participantId: string;
     signalingEndpoint: string;
     signalingToken: string;
-}
-
-export interface ParticipantMedia {
-  participantId: string;
-  stream: MediaStream;
-  hasAudio: boolean;
-  hasVideo: boolean;
 }
 
 export type SfuMediaEngineStatus =

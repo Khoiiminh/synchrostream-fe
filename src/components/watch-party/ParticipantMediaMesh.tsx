@@ -1,5 +1,5 @@
 import { ParticipantNode } from "@/store/slices/roomSlice";
-import { ParticipantMedia } from "@/core/services/SfuMediaEngine";
+import { ParticipantMedia } from "@/core/types/ParticipantMedia.type";
 import { useEffect, useRef } from "react";
 import { AspectRatio, Box, Text } from "@mantine/core";
 
