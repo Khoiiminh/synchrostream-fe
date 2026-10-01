@@ -33,6 +33,7 @@
     "embla-carousel-react": "^8.6.0",
     "hls.js": "^1.6.16",
     "jwt-decode": "^4.0.0",
+    "livekit-client": "^2.22.3",
     "lucide-react": "^1.21.0",
     "mediasoup-client": "^3.23.2",
     "next": "^16.3.5",

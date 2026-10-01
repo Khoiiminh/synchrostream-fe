@@ -34,6 +34,10 @@ export const watchPartyApi = createApi({
   }),
 
   endpoints: (builder) => ({
+    /** -------------------------------------------
+     *              IGNORE THIS ONE 
+     *  -------------------------------------------
+     */ 
     // GET watch-party/rtc-token?roomCode=XXXXXX
     getLiveKitRtcToken: builder.query<RtcTokenResponse, { roomCode: string }>({
       query: (params) => ({
@@ -42,6 +46,7 @@ export const watchPartyApi = createApi({
         params,
       }),
     }),
+    // --------------------------------------------
 
     createRoom: builder.mutation<CreateRoomResponse, CreateRoomArgs>({
       query: (body) => ({

@@ -9,9 +9,13 @@ import WatchClientLeaf from "@/components/watch/WatchClientLeaf";
 import StyleControllerPanel from "@/components/watch-party/StyleControllerPanel";
 import FloatingChatOverlay from "@/components/watch-party/FloatingChatOverlay";
 import NavbarWrapper from "@/components/commons/NavbarWrapper";
-import { useGetMediaSessionConnectionMutation } from "@/store/services/mediaSessionApi";
-import { ParticipantMedia, SfuMediaEngine, SfuMediaEngineStatus } from "@/core/services/SfuMediaEngine";
+import { useGetLiveKitMediaSessionConnectionMutation } from "@/store/services/mediaSessionApi";
+import {
+  LiveKitMediaEngine,
+  LiveKitMediaEngineStatus,
+} from "@/core/services/LiveKitMediaEngine";
 import ParticipantMediaMesh from "@/components/watch-party/ParticipantMediaMesh";
+import { ParticipantMedia } from "@/core/types/ParticipantMedia.type";
   
 /**
  * -------------------------------------------------------------
@@ -38,19 +42,23 @@ export default function IntegratedWatchPartyPage() {
   const searchParams = useSearchParams();
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const isAuthHydrated = useAppSelector((state) => state.auth.isAuthHydrated);
+ 
   const [
-    getMediaSessionConnection,
+    getLiveKitMediaSessionConnection,
     {
-      data: mediaSessionConnection,
-      isLoading: isMediaSessionConnectionLoading,
-      error: mediaSessionConnectionError,
+      data: liveKitMediaSessionConnection,
+      isLoading: isLiveKitMediaSessionConnectionLoading,
+      error: liveKitMediaSessionConnectionError,
     },
-  ] = useGetMediaSessionConnectionMutation();
+  ] = useGetLiveKitMediaSessionConnectionMutation();
 
-    const sfuMediaEngineRef = useRef<SfuMediaEngine | null>(null);
-    const [participantMedia, setParticipantMedia] = useState<ParticipantMedia[]>([]);
-    const [sfuStatus, setSfuStatus] = useState<SfuMediaEngineStatus>('DISCONNECTED');
-    const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const liveKitMediaEngineRef = useRef<LiveKitMediaEngine | null>(null);
+
+  const [participantMedia, setParticipantMedia] = useState<ParticipantMedia[]>([]);
+
+  const [liveKitStatus, setLiveKitStatus] = useState<LiveKitMediaEngineStatus>("DISCONNECTED");
+
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
 
   // Fallback Hierarchy
   // Read from incoming webscoket activeRoom state, if empty fetch from the source URL (?mediaId=...)
@@ -116,9 +124,8 @@ export default function IntegratedWatchPartyPage() {
     };
   }, [userId, roomCode, queryPassword, gatewayEngine, router, isAuthHydrated, isAuthenticated]);
 
-  // Get MediaSession connection
- useEffect(() => {
-
+  // Get LiveKit MediaSession connection
+  useEffect(() => {
     if (!mediaSessionId) {
       return;
     }
@@ -131,43 +138,44 @@ export default function IntegratedWatchPartyPage() {
       return;
     }
 
-    const connectToMediaSession = async () => {
+    const connectToLiveKitMediaSession = async () => {
       try {
-        console.log("[PartyPage] Resolving MediaSession connection", {
-          roomId: mediaSessionId,
+        console.log("[PartyPage] Resolving LiveKit MediaSession connection", {
+          mediaSessionId,
         });
 
-        const connection = await getMediaSessionConnection(
+        const connection = await getLiveKitMediaSessionConnection(
           mediaSessionId,
         ).unwrap();
 
-        console.log("[PartyPage] SFU connection blueprint received", {
-          mediaSessionId: connection.data.mediaSessionId,
-          participantId: connection.data.participantId,
-          sfuNodeId: connection.data.sfuNodeId,
-          signalingEndpoint: connection.data.signalingEndpoint,
-          hasSignalingToken: !!connection.data.signalingToken,
-        });
+        console.log(
+          "[PartyPage] LiveKit connection blueprint received",
+          {
+            mediaSessionId: connection.data.mediaSessionId,
+            participantId: connection.data.participantId,
+            serverUrl: connection.data.serverUrl,
+            hasParticipantToken: !!connection.data.participantToken,
+          },
+        );
       } catch (error) {
         console.error(
-          "[PartyPage] Failed to obtain SFU connection blueprint",
+          "[PartyPage] Failed to obtain LiveKit connection blueprint",
           error,
         );
       }
     };
 
-    void connectToMediaSession();
+    void connectToLiveKitMediaSession();
   }, [
     mediaSessionId,
-    getMediaSessionConnection,
+    getLiveKitMediaSessionConnection,
     userId,
     isAuthenticated,
     isAuthHydrated,
   ]);
 
-  // Connect SfuMediaEngine using the connection
+  // Connect LiveKitMediaEngine using the connection
   useEffect(() => {
-
     if (!mediaSessionId) {
       return;
     }
@@ -180,75 +188,82 @@ export default function IntegratedWatchPartyPage() {
       return;
     }
 
-    if (!mediaSessionConnection?.data) {
+    if (!liveKitMediaSessionConnection?.data) {
       return;
     }
 
-    const connection = mediaSessionConnection.data;
+    const connection = liveKitMediaSessionConnection.data;
 
-    const engine = new SfuMediaEngine();
+    const engine = new LiveKitMediaEngine();
 
-    sfuMediaEngineRef.current = engine;
+    liveKitMediaEngineRef.current = engine;
 
     const removeMediaListener = engine.onMediaUpdate((media) => {
       setParticipantMedia(media);
     });
 
-    const removeStatusListener = engine.onStatusUpdate(
-      (status, error) => {
-        setSfuStatus(status);
+    const removeStatusListener = engine.onStatusUpdate((status, error) => {
+      setLiveKitStatus(status);
 
-        if (error) {
-          console.error(
-            "[PartyPage] SFU media error",
-            error,
-          );
-        }
-      },
-    );
+      if (error) {
+        console.error(
+          "[PartyPage] LiveKit media error",
+          error,
+        );
+      }
+    });
 
-    const removeLocalStreamListener = engine.onLocalStreamUpdate((stream) => {
-        console.log("[PartyPage DEBUG] LOCAL STREAM RECEIVED", {
+    const removeLocalStreamListener =engine.onLocalStreamUpdate((stream) => {
+      console.log(
+        "[PartyPage DEBUG] LIVEKIT LOCAL STREAM RECEIVED",
+        {
           streamId: stream?.id ?? null,
-          audioTracks: stream?.getAudioTracks().length ?? 0,
-          videoTracks: stream?.getVideoTracks().length ?? 0,
-        });
+          audioTracks:
+            stream?.getAudioTracks().length ?? 0,
+          videoTracks:
+            stream?.getVideoTracks().length ?? 0,
+        },
+      );
 
-        setLocalStream(stream);
-      });
+      setLocalStream(stream);
+    });
 
-
-    const connectToSfu = async () => {
+    const connectToLiveKit = async () => {
       try {
         console.log(
-          "[PartyPage] Connecting production SFU media engine",
+          "[PartyPage] Connecting LiveKit media engine",
           {
             mediaSessionId: connection.mediaSessionId,
             participantId: connection.participantId,
-            sfuNodeId: connection.sfuNodeId,
-            signalingEndpoint: connection.signalingEndpoint,
+            serverUrl: connection.serverUrl,
           },
         );
 
         await engine.connect({
           mediaSessionId: connection.mediaSessionId,
           participantId: connection.participantId,
-          signalingEndpoint: connection.signalingEndpoint,
-          signalingToken: connection.signalingToken,
+          serverUrl: connection.serverUrl,
+          participantToken: connection.participantToken,
         });
 
         console.log(
-          "[PartyPage] Production SFU media engine connected",
+          "[PartyPage] LiveKit media engine connected",
+        );
+
+        await engine.enableLocalMedia();
+
+        console.log(
+          "[PartyPage] Local camera and microphone enabled",
         );
       } catch (error) {
         console.error(
-          "[PartyPage] Failed to connect production SFU media engine",
+          "[PartyPage] Failed to connect LiveKit media engine",
           error,
         );
       }
     };
 
-    void connectToSfu();
+    void connectToLiveKit();
 
     return () => {
       removeMediaListener();
@@ -257,17 +272,17 @@ export default function IntegratedWatchPartyPage() {
 
       void engine.disconnect();
 
-      if (sfuMediaEngineRef.current === engine) {
-        sfuMediaEngineRef.current = null;
+      if (liveKitMediaEngineRef.current === engine) {
+        liveKitMediaEngineRef.current = null;
       }
 
       setParticipantMedia([]);
       setLocalStream(null);
-      setSfuStatus("DISCONNECTED");
+      setLiveKitStatus("DISCONNECTED");
     };
   }, [
     mediaSessionId,
-    mediaSessionConnection,
+    liveKitMediaSessionConnection,
     userId,
     isAuthenticated,
     isAuthHydrated,
@@ -311,7 +326,7 @@ export default function IntegratedWatchPartyPage() {
         participantMedia={participantMedia}
         localStream={localStream}
         localParticipantId={
-          mediaSessionConnection?.data.participantId ?? ""
+          liveKitMediaSessionConnection?.data.participantId ?? ""
         }
         videoSize={videoSize}
         videoOpacity={videoOpacity}
