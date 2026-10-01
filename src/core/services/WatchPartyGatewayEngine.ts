@@ -41,10 +41,22 @@ interface ChatMessagePayload {
   timestamp: number;
 }
 
+type GatewayEventCallback = (...args: unknown[]) => void;
+
+interface GatewayEventListener {
+  event: string;
+  callback: GatewayEventCallback;
+}
+
+interface GatewayEventSubscription {
+  event: string;
+  callback?: GatewayEventCallback;
+}
+
 export class WatchPartyGatewayEngine {
   private socket: Socket | null = null;
   private telemetryIntervalId: NodeJS.Timeout | null = null;
-  private queueListeners: { event: string; callback: (...args: any[]) => void }[] = [];
+  private queueListeners: GatewayEventListener[] = [];
   private currentUserId: string | null = null;
 
   constructor(private readonly store: Store) {}
@@ -247,7 +259,7 @@ export class WatchPartyGatewayEngine {
    * Allows React components to attach ephemeral listeners for events
    * that require UI side-effects (like routing/alerts) rather than Redux state changes.
    */
-  public on(p: { event: string; callback: (...args: any[]) => void }): () => void {
+  public on(p: GatewayEventListener): () => void {
     this.queueListeners.push(p);
 
     if (this.socket) {
@@ -259,7 +271,7 @@ export class WatchPartyGatewayEngine {
     };
   }
 
-  public off(p: { event: string; callback?: (...args: any[]) => void }): void {
+  public off(p: GatewayEventSubscription): void {
     this.queueListeners = this.queueListeners.filter(
       (listener) => !(listener.event === p.event && (!p.callback || listener.callback === p.callback)),
     );
