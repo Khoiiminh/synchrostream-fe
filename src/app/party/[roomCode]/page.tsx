@@ -116,10 +116,10 @@ export default function IntegratedWatchPartyPage() {
       router.push('/catalog');
     };
 
-    gatewayEngine.on({event: 'room:terminated', callback: handleRoomTerminated});
+    const removeRoomTerminatedListener = gatewayEngine.on({event: 'room:terminated', callback: handleRoomTerminated});
 
     return () => {
-      gatewayEngine.off({ event: 'room:terminated', callback: handleRoomTerminated})
+      removeRoomTerminatedListener();
       gatewayEngine.disconnect();
     };
   }, [userId, roomCode, queryPassword, gatewayEngine, router, isAuthHydrated, isAuthenticated]);
