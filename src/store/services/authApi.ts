@@ -1,4 +1,4 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery, retry } from '@reduxjs/toolkit/query/react';
 
 export interface NestResponse<T> {
     success: boolean;
@@ -33,6 +33,37 @@ export interface UserProfileResponseData {
   role: string;
 }
 
+const authBaseQuery = fetchBaseQuery({
+    baseUrl: '/v1/auth',
+    prepareHeaders: (headers) => {
+        const token = localStorage.getItem('access_token');
+
+        if (token) {
+            headers.set('authorization', `Bearer ${token}`);
+        }
+
+        return headers;
+    },
+});
+
+// A dev proxy or backend can still be starting when the root layout mounts.
+// Retry transport and server failures, but never retry a definitive auth rejection.
+const resilientAuthBaseQuery = retry(authBaseQuery, {
+    retryCondition: (error, _args, { attempt }) => {
+        const status =
+            typeof error === 'object' && error !== null && 'status' in error
+                ? (error as { status?: unknown }).status
+                : undefined;
+        return (
+            attempt < 2 && (
+                status === 'FETCH_ERROR' ||
+                status === 'TIMEOUT_ERROR' ||
+                (typeof status === 'number' && status >= 500)
+            )
+        );
+    },
+});
+
 // initializes the API configuration
 export const authApi = createApi({
 
@@ -43,21 +74,7 @@ export const authApi = createApi({
     // The root URL configuration. 
     // All endpoints start with '/v1/auth' - Instead of typing `http://api.com/v1/auth` for 
     // every single request, we define the base here
-    baseQuery: fetchBaseQuery({
-        baseUrl: '/v1/auth',
-        prepareHeaders: (headers) => {
-            // 1. Retrieve the token from wherever you saved it on login
-            // (Usually localStorage, sessionStorage, or your global Redux auth state)
-            const token = localStorage.getItem('access_token'); 
-
-            // 2. If the token exists, cleanly inject it as a Bearer authorization token
-            if (token) {
-                headers.set('authorization', `Bearer ${token}`);
-            }
-
-            return headers;
-        }
-    }),
+    baseQuery: resilientAuthBaseQuery,
 
     // function defines the actual HTTP operations
     // `builder` is an object, used to construct queries (for GET) or mutations (for POST/PUT/DELETE)

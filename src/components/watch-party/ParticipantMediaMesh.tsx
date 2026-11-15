@@ -1,6 +1,6 @@
 import { ParticipantNode } from "@/store/slices/roomSlice";
 import { ParticipantMedia } from "@/core/types/ParticipantMedia.type";
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AspectRatio, Box, Text } from "@mantine/core";
 
 interface ParticipantMediaMeshProp {
@@ -18,6 +18,24 @@ interface ParticipantMediaTileProps {
     isLocalParticipant: boolean;
     videoSize: number;
     videoOpacity: number;
+
+    onPointerDown: (
+        event: React.PointerEvent<HTMLDivElement>
+    ) => void;
+    onPointerMove: (
+        event: React.PointerEvent<HTMLDivElement>
+    ) => void;
+    onPointerUp: (
+        event: React.PointerEvent<HTMLDivElement>
+    ) => void;
+    onPointerCancel: (
+        event: React.PointerEvent<HTMLDivElement>
+    ) => void;
+}
+
+interface MeshPosition {
+    x: number;
+    y: number;
 }
 
 function ParticipantMediaTile({
@@ -26,6 +44,11 @@ function ParticipantMediaTile({
     isLocalParticipant,
     videoSize,
     videoOpacity,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    onPointerCancel,
+
 }: ParticipantMediaTileProps) {
     const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -118,12 +141,17 @@ function ParticipantMediaTile({
 
     return (
         <Box
-            className="rounded-lg overflow-hidden border border-white/10 bg-zinc-950 shadow-xl pointer-events-auto transition-all duration-200 relative"
+            className="rounded-lg overflow-hidden border border-white/10 bg-zinc-950 shadow-xl pointer-events-auto transition-all duration-200 relative cursor-grab active:cursor-grabbing"
             style={{
                 width: videoSize,
                 height: (videoSize * 3) / 4,
                 opacity: videoOpacity,
+                touchAction: "none",
             }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerCancel}
         >
             <AspectRatio
                 ratio={4 / 3}
@@ -210,10 +238,78 @@ export default function ParticipantMediaMesh({
         ])
     );
 
+    /**
+     * The entire participant mesh is treated as one floating overlay.
+     * 
+     * x/y represent the mesh's position relative to the viewport.
+     */
+    const [position, setPosition] = useState<MeshPosition>({
+        x: 24,
+        y: 24,
+    });
+
+    const dragStateRef = useRef<{
+        dragging: boolean;
+        startPointerX: number;
+        startPointerY: number;
+        startPositionX: number;
+        startPositionY: number;
+    }>({
+        dragging: false,
+        startPointerX: 0,
+        startPointerY: 0,
+        startPositionX: 0,
+        startPositionY: 0,
+    });
+
+    const handleDragStart = (
+        event: React.PointerEvent<HTMLDivElement>,
+    ) => {
+        if (event.button !== 0) return;
+
+        dragStateRef.current = {
+            dragging: true,
+            startPointerX: event.clientX,
+            startPointerY: event.clientY,
+            startPositionX: position.x,
+            startPositionY: position.y,
+        };
+
+        event.currentTarget.setPointerCapture(event.pointerId);
+    };
+
+    const handleDragMove = (
+        event: React.PointerEvent<HTMLDivElement>
+    ) => {
+        if (!dragStateRef.current.dragging) return;
+
+        const deltaX = event.clientX - dragStateRef.current.startPointerX;
+        const deltaY = event.clientY - dragStateRef.current.startPointerY;
+
+        setPosition({
+            x: Math.max(0, dragStateRef.current.startPositionX + deltaX),
+            y: Math.max(0, dragStateRef.current.startPositionY + deltaY),
+        });
+    };
+
+    const handleDragEnd = (
+        event: React.PointerEvent<HTMLDivElement>
+    ) => {
+        if (!dragStateRef.current.dragging) return;
+
+        dragStateRef.current.dragging = false;
+
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+    };
+
     return (
         <Box
-            className="absolute top-6 left-6 z-40 flex flex-wrap gap-3 pointer-events-none"
+            className="fixed z-40 flex flex-wrap gap-3 pointer-events-auto cursor-grab active:cursor-grabbing"
             style={{
+                left: position.x,
+                top: position.y,
                 maxWidth: "calc(100% - 48px)",
             }}
         >
@@ -245,9 +341,13 @@ export default function ParticipantMediaMesh({
                     isLocalParticipant={isLocalParticipant}
                     videoSize={videoSize}
                     videoOpacity={videoOpacity}
+                    onPointerDown={handleDragStart}
+                    onPointerMove={handleDragMove}
+                    onPointerUp={handleDragEnd}
+                    onPointerCancel={handleDragEnd}
                     />
                 );
             })}
         </Box>
-    )
+    );
 }

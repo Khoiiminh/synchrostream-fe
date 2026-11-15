@@ -220,6 +220,56 @@ export class SyncEngine {
         this.emitSnapshot();
     }
 
+    public waitForSeekCompletion (): Promise<void> {
+        const video = this.videoElement;
+
+        if (!video || !video.seeking) {
+            return Promise.resolve();
+        }
+
+        return new Promise<void>((resolve, reject) => {
+            const timeoutMs = 5000;
+
+            const cleanup = (): void => {
+                video.removeEventListener("seeked", handleSeeked);
+                video.removeEventListener("emptied", handleEmptied);
+                clearTimeout(timeout);
+            };
+
+            const handleSeeked = (): void => {
+                cleanup();
+                resolve();
+            };
+
+            const handleEmptied = (): void => {
+                cleanup();
+                reject(
+                    new Error(
+                        "[SyncEngine] Video was emptied before seeking completed."
+                    )
+                );
+            };
+
+            const timeout = setTimeout(() => {
+                cleanup();
+                reject(
+                    new Error(
+                        "[SyncEngine] Timed out waiting for the video seek to complete."
+                    )
+                );
+            }, timeoutMs);
+
+            video.addEventListener("seeked", handleSeeked);
+            video.addEventListener("emptied", handleEmptied);
+
+            // Check again in case seeking finished while listeners were being set up.
+            if (!video.seeking) {
+                cleanup();
+                resolve();
+            }
+        });
+    }
+
     private setupListeners(): void {
         if (!this.videoElement) return;
 

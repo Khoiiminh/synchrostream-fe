@@ -20,7 +20,8 @@ export interface RoomSnapshotPayload {
   passwordPlain: string;
   ownerId: string;
   movieId: string; 
-  mediaSessionId: string;
+  /** Null until the room's LiveKit session is ACTIVE; pushed later via room:state_update. */
+  mediaSessionId: string | null;
   playback: PlaybackStateSnapshot;
   occupancy: {
     current: number;
@@ -36,15 +37,26 @@ interface OverlayStyles {
   chatHeight: number;      // In pixels
 }
 
+/** Structured detail for room errors the UI can act on (e.g. offer a room switch). */
+export interface RoomErrorDetail {
+  code?: string;
+  /** For ACTIVE_MEMBERSHIP_ELSEWHERE: the room the user is still in. */
+  currentRoomCode?: string;
+  /** True when the user owns that room, so leaving it closes it for everyone. */
+  currentRoomIsOwned?: boolean;
+}
+
 interface RoomState {
   activeRoom: RoomSnapshotPayload | null;
   errorMessage: string | null;
+  errorDetail: RoomErrorDetail | null;
   uiOptions: OverlayStyles;
 }
 
 const initialState: RoomState = {
   activeRoom: null,
   errorMessage: null,
+  errorDetail: null,
   uiOptions: {
     videoSize: 120,
     videoOpacity: 0.85,
@@ -60,6 +72,7 @@ export const roomSlice = createSlice({
     syncRoomState: (state, action: PayloadAction<RoomSnapshotPayload>) => {
       state.activeRoom = action.payload;
       state.errorMessage = null;
+      state.errorDetail = null;
     },
     updateRoomPlayback: (state, action: PayloadAction<{ status: 'PLAYING' | 'PAUSED'; playhead: number; lastUpdated: number }>) => {
       if (state.activeRoom) {
@@ -76,8 +89,9 @@ export const roomSlice = createSlice({
         state.activeRoom.occupancy.current = state.activeRoom.members.length;
       }
     },
-    setRoomError: (state, action: PayloadAction<{ message: string }>) => {
+    setRoomError: (state, action: PayloadAction<{ message: string; detail?: RoomErrorDetail | null }>) => {
       state.errorMessage = action.payload.message;
+      state.errorDetail = action.payload.detail ?? null;
     },
     clearRoomSession: () => initialState,
     setUiStyles: (state, action: PayloadAction<Partial<OverlayStyles>>) => {

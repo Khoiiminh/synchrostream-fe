@@ -1,4 +1,5 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { createAuthenticatedBaseQuery } from './authenticatedBaseQuery';
 
 export interface MovieMetadata {
   genre?: string;
@@ -28,17 +29,7 @@ export interface StreamResolution {
 
 export const mediaApi = createApi({
   reducerPath: "mediaApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: "/v1/media",
-    prepareHeaders: (headers) => {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-      if (token) {
-        headers.set("authorization", `Bearer ${token}`);
-      }
-      return headers;
-    },
-  }),
+  baseQuery: createAuthenticatedBaseQuery('/v1/media'),
   endpoints: (builder) => ({
     getMediaCatalog: builder.query<CatalogItem[], void>({
       query: () => "/catalog",

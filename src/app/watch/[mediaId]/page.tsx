@@ -1,5 +1,6 @@
 import React from 'react';
 import WatchClientLeaf from '@/components/watch/WatchClientLeaf';
+import { RequireAuthenticatedSession } from '@/components/auth/RequireAuthenticatedSession';
 
 interface WatchPageProps {
   params: Promise<{
@@ -12,6 +13,8 @@ export default async function WatchAlonePage({ params }: WatchPageProps) {
   const resolvedParams = await params;
 
   return (
-    <WatchClientLeaf mediaId={resolvedParams.mediaId} isPartyMode={false}/>
+    <RequireAuthenticatedSession>
+      <WatchClientLeaf mediaId={resolvedParams.mediaId} isPartyMode={false}/>
+    </RequireAuthenticatedSession>
   );
 }

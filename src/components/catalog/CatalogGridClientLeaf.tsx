@@ -1,17 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { Card, Image, Text, SimpleGrid, Badge, Button, Group, Center, Modal, Stack, TextInput } from '@mantine/core';
+import { Alert, Card, Image, Text, SimpleGrid, Badge, Button, Group, Center, Modal, Stack, TextInput } from '@mantine/core';
 import { useGetMediaCatalogQuery } from '../../store/services/mediaApi';
 import { useRouter } from 'next/navigation';
 import { LoadingPage } from '../commons/LoadingPage';
 import { useState } from 'react';
 import { Video } from 'lucide-react';
 import { useCreateRoomMutation } from '@/store/services/watchPartyApi';
-
-function generatePartyCode(): string {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
 
 export default function CatalogGridClientLeaf() {
   const { data: catalog, isLoading, error } = useGetMediaCatalogQuery();
@@ -22,6 +18,13 @@ export default function CatalogGridClientLeaf() {
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
   const [roomPassword, setRoomPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createRoomError, setCreateRoomError] = useState<{
+    message: string;
+    /** The room the user is still in; set when the conflict can be resolved by switching. */
+    existingRoomCode?: string;
+    /** True when the user owns that room (switching closes it for everyone). */
+    existingRoomIsOwned?: boolean;
+  } | null>(null);
 
   if (isLoading) {
     return (
@@ -42,34 +45,71 @@ export default function CatalogGridClientLeaf() {
   const handleOpenPasswordModal = (movieId: string) => {
     setSelectedMovieId(movieId);
     setRoomPassword('');
+    setCreateRoomError(null);
     setModalOpened(true);
   };
 
   const handleCreateRoom = async (e: React.SubmitEvent) => {
     e.preventDefault();
+    await submitCreateRoom(false);
+  };
+
+  /**
+   * @param leaveCurrent The user confirmed leaving (and, as owner, closing) the
+   * room they are still in; the server leaves it immediately, then creates.
+   */
+  const submitCreateRoom = async (leaveCurrent: boolean) => {
     if (!selectedMovieId) return;
 
+    setCreateRoomError(null);
     setIsSubmitting(true);
-    const generatedCode = generatePartyCode();
     const cleanPassword = roomPassword.trim();
 
     try {
-      await createRoom({
-        roomCode: generatedCode,
+      // The server generates a unique code (retrying collisions with reserved
+      // codes). A PROVISIONING result is still a created room: the party page's
+      // join retries until the room is ACTIVE.
+      const createdRoom = await createRoom({
         passwordPlain: cleanPassword,
         movieId: selectedMovieId,
         maxParticipants: 5,
+        ...(leaveCurrent ? { leaveCurrent: true } : {}),
       }).unwrap();
 
       setModalOpened(false);
-      router.push(`/party/${generatedCode}?pwd=${encodeURIComponent(cleanPassword)}`);
+      router.push(`/party/${createdRoom.roomCode}?pwd=${encodeURIComponent(cleanPassword)}`);
     } catch (err: unknown) {
-      // Accessing the RTK query error response body payload
-      const queryError = err as { data?: { message?: string } };
-      if (queryError.data?.message) {
-        console.error("NestJS Validation Failure Rules broken:", queryError.data.message);
+      // RTK Query puts the whole response body in `err.data`. The backend's
+      // GlobalExceptionFilter returns { success, message, data, timestamp },
+      // so the structured conflict detail is nested at `err.data.data`.
+      const queryError = err as {
+        status?: number;
+        data?: {
+          message?: string;
+          data?: { code?: string; roomCode?: string; isOwner?: boolean } | null;
+        };
+      };
+      const conflict = queryError.data?.data;
+      const existingRoomCode = conflict?.roomCode;
+
+      if (
+        queryError.status === 409 &&
+        (conflict?.code === 'ACTIVE_OWNER_ROOM' || conflict?.code === 'ACTIVE_MEMBERSHIP_ELSEWHERE') &&
+        existingRoomCode
+      ) {
+        const isOwned = conflict.code === 'ACTIVE_OWNER_ROOM' || conflict.isOwner === true;
+        setCreateRoomError({
+          message: isOwned
+            ? `You are still hosting room ${existingRoomCode}. Open it, or close it for everyone and create this room.`
+            : `You are still in room ${existingRoomCode}. Leave it to create this room?`,
+          existingRoomCode,
+          existingRoomIsOwned: isOwned,
+        });
       } else {
-        console.error("RTK Query Mutation failed:", err);
+        setCreateRoomError({
+          message: queryError.data?.message
+            ?? 'We could not create this room. Please check your details and try again.',
+        });
       }
     } finally {
       setIsSubmitting(false);
@@ -120,7 +160,7 @@ export default function CatalogGridClientLeaf() {
                 style={{ flex: 1 }}
                 onClick={() => handleOpenPasswordModal(movie.movieId)}
               >
-                Party Stream
+                Create Room
               </Button>
             </Group>
           </Card>
@@ -143,11 +183,50 @@ export default function CatalogGridClientLeaf() {
       >
         <form onSubmit={handleCreateRoom}>
           <Stack gap="md" mt="xs">
+            {createRoomError && (
+              <Alert color="red" title="Room was not created">
+                <Stack gap="sm">
+                  <Text size="sm">{createRoomError.message}</Text>
+                  {createRoomError.existingRoomCode && (
+                    <Group gap="xs">
+                      {/* Owners re-enter without a password; participants would need theirs. */}
+                      {createRoomError.existingRoomIsOwned && (
+                        <Button
+                          type="button"
+                          size="xs"
+                          variant="light"
+                          onClick={() => {
+                            setModalOpened(false);
+                            router.push(`/party/${createRoomError.existingRoomCode}`);
+                          }}
+                        >
+                          Open room {createRoomError.existingRoomCode}
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        size="xs"
+                        color="red"
+                        loading={isSubmitting}
+                        onClick={() => void submitCreateRoom(true)}
+                      >
+                        {createRoomError.existingRoomIsOwned
+                          ? `Close ${createRoomError.existingRoomCode} and create`
+                          : `Leave ${createRoomError.existingRoomCode} and create`}
+                      </Button>
+                    </Group>
+                  )}
+                </Stack>
+              </Alert>
+            )}
             <TextInput
               label="Room Access Key / Password"
               placeholder="Leave completely blank for public open entry..."
               value={roomPassword}
-              onChange={(e) => setRoomPassword(e.currentTarget.value)}
+              onChange={(e) => {
+                setRoomPassword(e.currentTarget.value);
+                setCreateRoomError(null);
+              }}
               disabled={isSubmitting}
             />
             <Button type="submit" color="teal" fullWidth loading={isSubmitting}>
