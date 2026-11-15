@@ -16,16 +16,19 @@ const initialState: PlaybackStateSnapshot = {
     playbackRate: 1.0,
 };
 
-export const  playbackSlice = createSlice({
-    name: 'playback',
+export const playbackSlice = createSlice({
+    name: "playback",
     initialState,
     reducers: {
-        updatePlaybackSnapshot: (state, action: PayloadAction<Partial<PlaybackStateSnapshot>>) => {
+        updatePlaybackSnapshot: (
+            state,
+            action: PayloadAction<Partial<PlaybackStateSnapshot>>,
+        ) => {
             return { ...state, ...action.payload };
         },
 
         resetPlayback: () => initialState,
-    },  
+    },
 });
 
 export const { updatePlaybackSnapshot, resetPlayback } = playbackSlice.actions;

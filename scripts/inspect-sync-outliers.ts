@@ -50,7 +50,8 @@ for (const inputPath of inputPaths) {
             typeof sample.actualPositionSeconds === "number" &&
             typeof sample.expectedPositionSeconds === "number"
                 ? Math.abs(
-                      sample.actualPositionSeconds - sample.expectedPositionSeconds,
+                      sample.actualPositionSeconds -
+                          sample.expectedPositionSeconds,
                   ) * 1000
                 : null;
 
@@ -64,9 +65,7 @@ for (const inputPath of inputPaths) {
         );
         console.log(`Participant: ${sample.participantId}`);
         console.log(`State: ${sample.playbackState}`);
-        console.log(
-            `Actual position: ${sample.actualPositionSeconds} seconds`,
-        );
+        console.log(`Actual position: ${sample.actualPositionSeconds} seconds`);
         console.log(
             `Expected position: ${sample.expectedPositionSeconds} seconds`,
         );

@@ -1,4 +1,3 @@
-
 import { readFileSync } from "node:fs";
 
 type PlaybackState = "PLAYING" | "PAUSED";
@@ -85,10 +84,7 @@ function isFiniteNumber(value: unknown): value is number {
  * @param index - Zero-based position of the sample in the input array.
  * @returns The validated value typed as PlaybackDriftSample.
  */
-function validateSample(
-    value: unknown,
-    index: number,
-): PlaybackDriftSample {
+function validateSample(value: unknown, index: number): PlaybackDriftSample {
     if (typeof value !== "object" || value === null || Array.isArray(value)) {
         fail(`Sample at index ${index} must be an object.`);
     }
@@ -132,9 +128,7 @@ function validateSample(
         sample.playbackState !== "PLAYING" &&
         sample.playbackState !== "PAUSED"
     ) {
-        fail(
-            `Sample ${index}: playbackState must be PLAYING or PAUSED.`,
-        );
+        fail(`Sample ${index}: playbackState must be PLAYING or PAUSED.`);
     }
 
     return sample as unknown as PlaybackDriftSample;
@@ -252,11 +246,13 @@ function calculateStatistics(
     const values = samples.map((sample) => sample.driftMs);
     const sortedValues = [...values].sort((a, b) => a - b);
 
-    const meanMs = values.reduce((total, value) => total + value, 0) / values.length;
+    const meanMs =
+        values.reduce((total, value) => total + value, 0) / values.length;
 
-    const variance = values.reduce((total, value) => {
-        return total + Math.pow(value - meanMs, 2);
-    }, 0) / values.length;
+    const variance =
+        values.reduce((total, value) => {
+            return total + Math.pow(value - meanMs, 2);
+        }, 0) / values.length;
 
     return {
         count: values.length,
@@ -441,12 +437,8 @@ function printToleranceAnalysis(
         return;
     }
 
-    console.log(
-        "Tolerance | Within / Total | Exceeding | Within tolerance",
-    );
-    console.log(
-        "----------|----------------|-----------|-----------------",
-    );
+    console.log("Tolerance | Within / Total | Exceeding | Within tolerance");
+    console.log("----------|----------------|-----------|-----------------");
 
     for (const toleranceMs of TOLERANCES_MS) {
         const withinToleranceCount = samples.filter((sample) => {
@@ -455,9 +447,11 @@ function printToleranceAnalysis(
 
         const exceedingToleranceCount = samples.length - withinToleranceCount;
 
-        const accuracyPercentage = (withinToleranceCount / samples.length) * 100;
+        const accuracyPercentage =
+            (withinToleranceCount / samples.length) * 100;
 
-        const withinText = `${withinToleranceCount} / ${samples.length}`.padStart(14);
+        const withinText =
+            `${withinToleranceCount} / ${samples.length}`.padStart(14);
 
         console.log(
             `${String(toleranceMs).padStart(9)} | ${withinText} | ` +
@@ -470,9 +464,7 @@ function printToleranceAnalysis(
     console.log(
         "- Within / Total: observations with drift <= tolerance, divided by all observations in this section.",
     );
-    console.log(
-        "- Exceeding: observations with drift > tolerance.",
-    );
+    console.log("- Exceeding: observations with drift > tolerance.");
     console.log(
         "- Within tolerance: Within / Total expressed as a percentage.",
     );
@@ -546,10 +538,7 @@ function printTimeline(samples: PlaybackDriftSample[]): void {
         return;
     }
 
-    const bucketCount = Math.min(
-        TIMELINE_BUCKET_COUNT,
-        orderedSamples.length,
-    );
+    const bucketCount = Math.min(TIMELINE_BUCKET_COUNT, orderedSamples.length);
 
     const buckets = Array.from({ length: bucketCount }, () => ({
         samples: [] as PlaybackDriftSample[],
@@ -569,10 +558,7 @@ function printTimeline(samples: PlaybackDriftSample[]): void {
         const bucket = buckets[bucketIndex];
 
         bucket.samples.push(sample);
-        bucket.maximumDriftMs = Math.max(
-            bucket.maximumDriftMs,
-            sample.driftMs,
-        );
+        bucket.maximumDriftMs = Math.max(bucket.maximumDriftMs, sample.driftMs);
 
         if (sample.playbackState === "PLAYING") {
             bucket.playingCount += 1;
@@ -618,27 +604,24 @@ function printTimeline(samples: PlaybackDriftSample[]): void {
     );
 
     buckets.forEach((bucket, index) => {
-        const startSeconds =
-            (index / bucketCount) * (durationMs / 1000);
+        const startSeconds = (index / bucketCount) * (durationMs / 1000);
 
-        const endSeconds =
-            ((index + 1) / bucketCount) * (durationMs / 1000);
+        const endSeconds = ((index + 1) / bucketCount) * (durationMs / 1000);
 
         const barLength =
             maximumBucketDrift === 0
                 ? 0
                 : Math.max(
-                    1,
-                    Math.round(
-                        (bucket.maximumDriftMs / maximumBucketDrift) *
-                            barWidth,
-                    ),
-                );
+                      1,
+                      Math.round(
+                          (bucket.maximumDriftMs / maximumBucketDrift) *
+                              barWidth,
+                      ),
+                  );
 
         const bar = "#".repeat(barLength);
 
-        const interval =
-            `${formatElapsed(startSeconds)}-${formatElapsed(endSeconds)}`;
+        const interval = `${formatElapsed(startSeconds)}-${formatElapsed(endSeconds)}`;
 
         const playbackStates =
             `PLAYING: ${bucket.playingCount}, ` +
@@ -835,7 +818,9 @@ function main(): void {
     console.log(`Distinct participant IDs:  ${participantIds.size}`);
     console.log(`PLAYING observations:      ${playingSamples.length}`);
     console.log(`PAUSED observations:       ${pausedSamples.length}`);
-    console.log(`Recording duration:        ${formatDuration(durationSeconds)}`);
+    console.log(
+        `Recording duration:        ${formatDuration(durationSeconds)}`,
+    );
 
     console.log(
         `Observation timestamps:    ${new Date(firstTimestamp).toISOString()} to ` +
@@ -870,20 +855,11 @@ function main(): void {
         pausedSamples,
     );
 
-    printToleranceAnalysis(
-        "Combined Tolerance Analysis",
-        samples,
-    );
+    printToleranceAnalysis("Combined Tolerance Analysis", samples);
 
-    printToleranceAnalysis(
-        "PLAYING Tolerance Analysis",
-        playingSamples,
-    );
+    printToleranceAnalysis("PLAYING Tolerance Analysis", playingSamples);
 
-    printToleranceAnalysis(
-        "PAUSED Tolerance Analysis",
-        pausedSamples,
-    );
+    printToleranceAnalysis("PAUSED Tolerance Analysis", pausedSamples);
 
     printInterpretation(samples);
 

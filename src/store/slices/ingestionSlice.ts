@@ -1,6 +1,11 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-export type IngestionStep = 'idle' | 'initialize' | 'uploading_chunks' | 'finalizing' | 'success';
+export type IngestionStep =
+    | "idle"
+    | "initialize"
+    | "uploading_chunks"
+    | "finalizing"
+    | "success";
 
 interface IngestionState {
     uploadStep: IngestionStep;
@@ -10,14 +15,14 @@ interface IngestionState {
 }
 
 const initialState: IngestionState = {
-    uploadStep: 'idle',
+    uploadStep: "idle",
     chunkProgress: 0,
     engineError: null,
     engineSuccess: null,
 };
 
 export const ingestionSlice = createSlice({
-    name: 'ingestion',
+    name: "ingestion",
     initialState,
     reducers: {
         setUploadStep: (state, action: PayloadAction<IngestionStep>) => {
@@ -28,27 +33,27 @@ export const ingestionSlice = createSlice({
         },
         setEngineError: (state, action: PayloadAction<string | null>) => {
             state.engineError = action.payload;
-            if (action.payload) state.uploadStep = 'idle';
+            if (action.payload) state.uploadStep = "idle";
         },
         setEngineSuccess: (state, action: PayloadAction<string | null>) => {
             state.engineSuccess = action.payload;
-            state.uploadStep = 'success';
+            state.uploadStep = "success";
         },
         resetIngestionEngine: (state) => {
-            state.uploadStep = 'idle';
+            state.uploadStep = "idle";
             state.chunkProgress = 0;
             state.engineError = null;
             state.engineSuccess = null;
-        }
-    }
+        },
+    },
 });
 
-export const { 
-    setUploadStep, 
-    setChunkProgress, 
-    setEngineError, 
-    setEngineSuccess, 
-    resetIngestionEngine 
+export const {
+    setUploadStep,
+    setChunkProgress,
+    setEngineError,
+    setEngineSuccess,
+    resetIngestionEngine,
 } = ingestionSlice.actions;
 
 export default ingestionSlice.reducer;

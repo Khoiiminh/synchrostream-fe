@@ -7,8 +7,11 @@ import {
     RoomEvent,
     Track,
 } from "livekit-client";
+import { createLogger } from "@/core/logging/logger";
 
-export type LiveKitMediaEngineStatus = 
+const log = createLogger("LiveKitMediaEngine");
+
+export type LiveKitMediaEngineStatus =
     | "DISCONNECTED"
     | "CONNECTING"
     | "CONNECTED"
@@ -24,10 +27,7 @@ export interface LiveKitMediaEngineConfig {
 
 type MediaListener = (participants: ParticipantMedia[]) => void;
 
-type StatusListener = (
-    status: LiveKitMediaEngineStatus,
-    error?: Error,
-) => void;
+type StatusListener = (status: LiveKitMediaEngineStatus, error?: Error) => void;
 
 type LocalStreamListener = (stream: MediaStream | null) => void;
 
@@ -66,7 +66,7 @@ export class LiveKitMediaEngine {
     private readonly participantStreams = new Map<string, MediaStream>();
     private readonly trackRecords = new Map<string, ParticipantTrackRecord>();
     private readonly mediaListeners = new Set<MediaListener>();
-    private readonly statusListeners  = new Set<StatusListener>();
+    private readonly statusListeners = new Set<StatusListener>();
     private readonly localStreamListeners = new Set<LocalStreamListener>();
     private isCleaningUp = false;
     private isProducingLocalMedia = false;
@@ -94,9 +94,9 @@ export class LiveKitMediaEngine {
         }
 
         if (this.room.state === "connected" && this.trackRecords.size > 0) {
-            return "MEDIA_CONNECTED"
+            return "MEDIA_CONNECTED";
         }
-        
+
         if (this.room.state === "connected") {
             return "CONNECTED";
         }
@@ -181,14 +181,15 @@ export class LiveKitMediaEngine {
                 this.appliedMicrophoneActive = target;
                 this.notifyMicrophone();
             } catch (error) {
-                const normalizedError = error instanceof Error
-                    ? error
-                    : new Error("Failed to change microphone state.");
+                const normalizedError =
+                    error instanceof Error
+                        ? error
+                        : new Error("Failed to change microphone state.");
 
-                console.error(
-                    "[LiveKitMediaEngine] Microphone transition failed",
-                    { target, error: normalizedError },
-                );
+                log.error("Microphone transition failed", {
+                    target,
+                    error: normalizedError,
+                });
 
                 // Do not retry in a loop (e.g. permission denied).
                 this.desiredMicrophoneActive = this.appliedMicrophoneActive;
@@ -206,9 +207,8 @@ export class LiveKitMediaEngine {
     }
 
     public getParticipantMedia(): ParticipantMedia[] {
-        
-        return Array.from(this.participantStreams.entries())
-            .map(([participantId, stream]) => {
+        return Array.from(this.participantStreams.entries()).map(
+            ([participantId, stream]) => {
                 const hasAudio = stream.getAudioTracks().length > 0;
 
                 const hasVideo = stream.getVideoTracks().length > 0;
@@ -219,7 +219,7 @@ export class LiveKitMediaEngine {
                     hasAudio,
                     hasVideo,
                 };
-            }
+            },
         );
     }
 
@@ -243,32 +243,22 @@ export class LiveKitMediaEngine {
 
             this.registerRoomEvents(room);
 
-            await room.connect(
-                config.serverUrl,
-                config.participantToken,
-            );
+            await room.connect(config.serverUrl, config.participantToken);
 
             this.notifyStatus("CONNECTED");
 
-            console.log(
-                "[LiveKitMediaEngine] Connected to LiveKit room",
-                {
-                    mediaSessionId: config.mediaSessionId,
-                    participantId: config.participantId,
-                    roomName: room.name,
-                },
-            );
+            log.debug("Connected to LiveKit room", {
+                mediaSessionId: config.mediaSessionId,
+                participantId: config.participantId,
+                roomName: room.name,
+            });
         } catch (error) {
-            const normalizedError = error instanceof Error
-                ? error
-                : new Error(
-                        "Failed to connect to LiveKit.",
-                    );
+            const normalizedError =
+                error instanceof Error
+                    ? error
+                    : new Error("Failed to connect to LiveKit.");
 
-            this.notifyStatus(
-                "ERROR",
-                normalizedError,
-            );
+            this.notifyStatus("ERROR", normalizedError);
 
             await this.cleanup();
 
@@ -304,7 +294,9 @@ export class LiveKitMediaEngine {
 
             const createdTracks = await this.room.localParticipant.createTracks(
                 {
-                    audio: askForMicrophone ? MICROPHONE_CAPTURE_OPTIONS : false,
+                    audio: askForMicrophone
+                        ? MICROPHONE_CAPTURE_OPTIONS
+                        : false,
                     video: true,
                 },
             );
@@ -323,67 +315,52 @@ export class LiveKitMediaEngine {
             const localStream = new MediaStream();
 
             for (const localTrack of localTracks) {
-                localStream.addTrack(
-                    localTrack.mediaStreamTrack,
-                );
+                localStream.addTrack(localTrack.mediaStreamTrack);
             }
 
             this.localStream = localStream;
 
             this.notifyLocalStreamUpdate();
 
-            console.log(
-                "[LiveKitMediaEngine] Local media created",
-                {
-                    streamId: localStream.id,
-                    audioTracks: localStream
-                        .getAudioTracks()
-                        .map((track) => ({
-                            id: track.id,
-                            readyState: track.readyState,
-                            enabled: track.enabled,
-                            settings: track.getSettings(),
-                        })),
+            log.debug("Local media created", {
+                streamId: localStream.id,
+                audioTracks: localStream.getAudioTracks().map((track) => ({
+                    id: track.id,
+                    readyState: track.readyState,
+                    enabled: track.enabled,
+                    settings: track.getSettings(),
+                })),
 
-                    videoTracks: localStream
-                        .getVideoTracks()
-                        .map((track) => ({
-                            id: track.id,
-                            readyState: track.readyState,
-                            enabled: track.enabled,
-                            settings: track.getSettings(),
-                        })),
-                },
-            );
+                videoTracks: localStream.getVideoTracks().map((track) => ({
+                    id: track.id,
+                    readyState: track.readyState,
+                    enabled: track.enabled,
+                    settings: track.getSettings(),
+                })),
+            });
 
             for (const localTrack of localTracks) {
-                await this.room.localParticipant.publishTrack(
-                    localTrack,
-                    {
-                        source: localTrack.kind === Track.Kind.Audio
+                await this.room.localParticipant.publishTrack(localTrack, {
+                    source:
+                        localTrack.kind === Track.Kind.Audio
                             ? Track.Source.Microphone
                             : Track.Source.Camera,
-                    },
-                );
+                });
             }
 
             this.notifyLocalParticipantMedia();
 
-            console.log(
-                "[LiveKitMediaEngine] Local media published",
-                {
-                    participantId: this.config?.participantId,
-                    microphone: "push-to-talk (closed until talking)",
-                },
-            );
+            log.debug("Local media published", {
+                participantId: this.config?.participantId,
+                microphone: "push-to-talk (closed until talking)",
+            });
         } catch (error) {
             this.isProducingLocalMedia = false;
 
             if (this.localStream) {
-                this.localStream.getTracks()
-                    .forEach((track) => {
-                        track.stop();
-                    });
+                this.localStream.getTracks().forEach((track) => {
+                    track.stop();
+                });
 
                 this.localStream = null;
             }
@@ -401,11 +378,7 @@ export class LiveKitMediaEngine {
     private registerRoomEvents(room: Room): void {
         room.on(
             RoomEvent.TrackSubscribed,
-            (
-                track: RemoteTrack,
-                publication,
-                participant,
-            ) => {
+            (track: RemoteTrack, publication, participant) => {
                 this.handleRemoteTrackSubscribed(
                     track,
                     publication.trackSid,
@@ -416,11 +389,7 @@ export class LiveKitMediaEngine {
 
         room.on(
             RoomEvent.TrackUnsubscribed,
-            (
-                track: RemoteTrack,
-                publication,
-                participant,
-            ) => {
+            (track: RemoteTrack, publication, participant) => {
                 this.handleRemoteTrackUnsubscribed(
                     track,
                     publication.trackSid,
@@ -429,90 +398,54 @@ export class LiveKitMediaEngine {
             },
         );
 
-        room.on(
-            RoomEvent.TrackUnpublished,
-            (
-                publication,
-                participant,
-            ) => {
-                this.handleRemoteTrackUnpublished(
-                    publication.trackSid,
-                    participant.identity,
-                );
-            },
-        );
+        room.on(RoomEvent.TrackUnpublished, (publication, participant) => {
+            this.handleRemoteTrackUnpublished(
+                publication.trackSid,
+                participant.identity,
+            );
+        });
 
-        room.on(
-            RoomEvent.LocalTrackPublished,
-            (
-                publication,
-                participant,
-            ) => {
-                this.handleLocalTrackPublished(
-                    publication.trackSid,
-                    publication.track,
-                    participant.identity,
-                );
-            },
-        );
+        room.on(RoomEvent.LocalTrackPublished, (publication, participant) => {
+            this.handleLocalTrackPublished(
+                publication.trackSid,
+                publication.track,
+                participant.identity,
+            );
+        });
 
-        room.on(
-            RoomEvent.LocalTrackUnpublished,
-            (
-                publication,
-                participant,
-            ) => {
-                this.handleLocalTrackUnpublished(
-                    publication.trackSid,
-                    participant.identity,
-                );
-            },
-        );
+        room.on(RoomEvent.LocalTrackUnpublished, (publication, participant) => {
+            this.handleLocalTrackUnpublished(
+                publication.trackSid,
+                participant.identity,
+            );
+        });
 
-        room.on(
-            RoomEvent.Disconnected,
-            () => {
-                if (this.isCleaningUp) {
-                    return;
-                }
+        room.on(RoomEvent.Disconnected, () => {
+            if (this.isCleaningUp) {
+                return;
+            }
 
-                this.notifyStatus("DISCONNECTED");
-            },
-        );
+            this.notifyStatus("DISCONNECTED");
+        });
 
-        room.on(
-            RoomEvent.Reconnecting,
-            () => {
-                this.notifyStatus("CONNECTING");
-            },
-        );
+        room.on(RoomEvent.Reconnecting, () => {
+            this.notifyStatus("CONNECTING");
+        });
 
-        room.on(
-            RoomEvent.Reconnected,
-            () => {
-                this.notifyStatus(
-                    this.trackRecords.size > 0
-                        ? "MEDIA_CONNECTED"
-                        : "CONNECTED",
-                );
-            },
-        );
+        room.on(RoomEvent.Reconnected, () => {
+            this.notifyStatus(
+                this.trackRecords.size > 0 ? "MEDIA_CONNECTED" : "CONNECTED",
+            );
+        });
 
-        room.on(
-            RoomEvent.MediaDevicesError,
-            (error) => {
-                const normalizedError = error instanceof Error
+        room.on(RoomEvent.MediaDevicesError, (error) => {
+            const normalizedError =
+                error instanceof Error
                     ? error
-                    : new Error(
-                            "LiveKit media device error.",
-                        );
+                    : new Error("LiveKit media device error.");
 
-                this.notifyStatus(
-                    "ERROR",
-                    normalizedError,
-                );
-            },
-        );
+            this.notifyStatus("ERROR", normalizedError);
+        });
     }
 
     private handleRemoteTrackSubscribed(
@@ -548,20 +481,14 @@ export class LiveKitMediaEngine {
         trackSid: string,
         participantId: string,
     ): void {
-        this.removeParticipantTrack(
-            participantId,
-            trackSid,
-        );
+        this.removeParticipantTrack(participantId, trackSid);
     }
 
     private handleRemoteTrackUnpublished(
         trackSid: string,
         participantId: string,
     ): void {
-        this.removeParticipantTrack(
-            participantId,
-            trackSid,
-        );
+        this.removeParticipantTrack(participantId, trackSid);
     }
 
     private handleLocalTrackPublished(
@@ -593,10 +520,7 @@ export class LiveKitMediaEngine {
         trackSid: string,
         participantId: string,
     ): void {
-        this.removeParticipantTrack(
-            participantId,
-            trackSid,
-        );
+        this.removeParticipantTrack(participantId, trackSid);
     }
 
     private addParticipantTrack(
@@ -616,32 +540,23 @@ export class LiveKitMediaEngine {
         if (!stream) {
             stream = new MediaStream();
 
-            this.participantStreams.set(
-                participantId,
-                stream,
-            );
+            this.participantStreams.set(participantId, stream);
         }
 
         const existingTrack = stream
             .getTracks()
-            .find(
-                (candidate) =>
-                    candidate.id === track.id,
-            );
+            .find((candidate) => candidate.id === track.id);
 
         if (!existingTrack) {
             stream.addTrack(track);
         }
 
-        this.trackRecords.set(
+        this.trackRecords.set(trackSid, {
+            participantId,
             trackSid,
-            {
-                participantId,
-                trackSid,
-                track,
-                kind,
-            },
-        );
+            track,
+            kind,
+        });
 
         this.notifyMediaUpdate();
     }
@@ -656,38 +571,27 @@ export class LiveKitMediaEngine {
             return;
         }
 
-        const stream = this.participantStreams.get(
-            participantId,
-        );
+        const stream = this.participantStreams.get(participantId);
 
         if (stream) {
             const track = stream
                 .getTracks()
-                .find(
-                    (candidate) => candidate.id === record.track.id,
-                );
+                .find((candidate) => candidate.id === record.track.id);
 
             if (track) {
                 stream.removeTrack(track);
             }
 
             if (stream.getTracks().length === 0) {
-                this.participantStreams.delete(
-                    participantId,
-                );
+                this.participantStreams.delete(participantId);
             }
         }
 
-        this.trackRecords.delete(
-            trackSid,
-        );
+        this.trackRecords.delete(trackSid);
 
         this.notifyMediaUpdate();
 
-        if (
-            this.trackRecords.size === 0 &&
-            this.room?.state === "connected"
-        ) {
+        if (this.trackRecords.size === 0 && this.room?.state === "connected") {
             this.notifyStatus("CONNECTED");
         }
     }
@@ -740,14 +644,9 @@ export class LiveKitMediaEngine {
 
         if (this.room) {
             try {
-                await this.room.disconnect(
-                    true,
-                );
+                await this.room.disconnect(true);
             } catch (error) {
-                console.error(
-                    "[LiveKitMediaEngine] Failed to disconnect room",
-                    error,
-                );
+                log.error("Failed to disconnect room", error);
             }
 
             this.room = null;
@@ -757,10 +656,9 @@ export class LiveKitMediaEngine {
         this.participantStreams.clear();
 
         if (this.localStream) {
-            this.localStream.getTracks()
-                .forEach((track) => {
-                    track.stop();
-                });
+            this.localStream.getTracks().forEach((track) => {
+                track.stop();
+            });
 
             this.localStream = null;
         }
@@ -780,7 +678,9 @@ export class LiveKitMediaEngine {
     }
 }
 
-async function queryMicrophonePermission(): Promise<PermissionState | "unknown"> {
+async function queryMicrophonePermission(): Promise<
+    PermissionState | "unknown"
+> {
     try {
         const status = await navigator.permissions.query({
             name: "microphone" as PermissionName,

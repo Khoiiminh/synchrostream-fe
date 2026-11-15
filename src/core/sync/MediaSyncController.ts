@@ -1,12 +1,17 @@
 import { SyncDiagnostics } from "@/diagnostics/SyncDiagnostics";
 import { ISyncAdapter } from "./ISyncAdapter";
+import { createLogger } from "@/core/logging/logger";
 
-interface SyncMetricsProvider extends SyncDiagnostics{
+const log = createLogger("MediaSyncController");
+
+interface SyncMetricsProvider extends SyncDiagnostics {
     downloadJson(filename?: string): void;
+    downloadRunJson?(filename?: string): void;
 }
 
 interface SyncMetricsProviderAccessor {
     getSyncMetrics(): SyncMetricsProvider;
+    getMetricsUploader?(): { flush(): Promise<void> };
 }
 
 /**
@@ -35,7 +40,7 @@ export class MediaSyncController {
      */
     attach(video: HTMLVideoElement) {
         if (this.attached) {
-            console.warn('MediaSyncController already attached');
+            log.warn("MediaSyncController already attached");
 
             return;
         }
@@ -56,7 +61,7 @@ export class MediaSyncController {
      */
     async play() {
         if (!this.attached) {
-            console.warn('Cannot play before attaching video');
+            log.warn("Cannot play before attaching video");
             return;
         }
 
@@ -135,7 +140,7 @@ export class MediaSyncController {
      * @param level - Quality level identifier or index expected
      * by the adapter.
      */
-    setQualityLevel(level:number) {
+    setQualityLevel(level: number) {
         this.adapter.setQualityLevel(level);
     }
 
@@ -165,21 +170,30 @@ export class MediaSyncController {
      * metrics. If the provider is unavailable, logs a warning and
      * returns without downloading a file.
      *
-     * @param filename - Name of the downloaded JSON file.
-     * Defaults to "synchrostream-sync-metrics.json".
+     * Exports the full run (context, drift samples and sync events) when
+     * supported, and pushes any queued records to the backend at the same time.
+     *
+     * @param filename - Name of the downloaded JSON file. Defaults to a
+     * run-specific name.
      */
-    public downloadSyncMetrics(filename = "synchrostream-sync-metrics.json"): void {
-        const metricsProvider = this.adapter as ISyncAdapter & Partial<SyncMetricsProviderAccessor>;
+    public downloadSyncMetrics(filename?: string): void {
+        const metricsProvider = this.adapter as ISyncAdapter &
+            Partial<SyncMetricsProviderAccessor>;
 
         if (!metricsProvider.getSyncMetrics) {
-            console.warn(
-                "[MediaSyncController] Sync metrics are only available in party mode.",
-            );
+            log.warn("Sync metrics are only available in party mode.");
 
             return;
         }
 
-        metricsProvider.getSyncMetrics().downloadJson(filename);
+        void metricsProvider.getMetricsUploader?.().flush();
+
+        const metrics = metricsProvider.getSyncMetrics();
+        if (metrics.downloadRunJson) {
+            metrics.downloadRunJson(filename);
+        } else {
+            metrics.downloadJson(filename);
+        }
     }
 
     /**
@@ -193,7 +207,8 @@ export class MediaSyncController {
      * if diagnostics are unavailable.
      */
     public getSyncDiagnostics(): SyncDiagnostics | null {
-        const metricsProvider = this.adapter as ISyncAdapter & Partial<SyncMetricsProviderAccessor>;
+        const metricsProvider = this.adapter as ISyncAdapter &
+            Partial<SyncMetricsProviderAccessor>;
 
         if (!metricsProvider.getSyncMetrics) {
             return null;

@@ -2,10 +2,10 @@
  * The operations that UI needs
  */
 export interface QualityLevel {
-  index: number;
-  height: number;
-  bitrate: number;
-  name: string;
+    index: number;
+    height: number;
+    bitrate: number;
+    name: string;
 }
 
 export interface ISyncAdapter {
@@ -13,7 +13,7 @@ export interface ISyncAdapter {
     pause(): Promise<void>;
     seek(seconds: number): void;
 
-    attachVideo(element: HTMLVideoElement):void;
+    attachVideo(element: HTMLVideoElement): void;
     detachVideo(): void;
 
     dispose(): void;
@@ -23,4 +23,3 @@ export interface ISyncAdapter {
     getCurrentQualityIndex(): number;
     setQualityLevel(level: number): void;
 }
-

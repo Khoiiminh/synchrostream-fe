@@ -21,15 +21,15 @@ import { useEffect, useRef } from "react";
 
 /** Where the user was heading when the guard intercepted navigation. */
 export type LeaveDestination =
-  | { kind: "href"; href: string }
-  | { kind: "back" };
+    | { kind: "href"; href: string }
+    | { kind: "back" };
 
 type LeaveGuardHandler = (destination: LeaveDestination) => void;
 
 let activeGuard: LeaveGuardHandler | null = null;
 
 interface RouterLike {
-  push: (href: string) => void;
+    push: (href: string) => void;
 }
 
 /**
@@ -37,11 +37,11 @@ interface RouterLike {
  * profile menu): when a party is active it runs the leave flow first.
  */
 export function guardedNavigate(router: RouterLike, href: string): void {
-  if (activeGuard) {
-    activeGuard({ kind: "href", href });
-    return;
-  }
-  router.push(href);
+    if (activeGuard) {
+        activeGuard({ kind: "href", href });
+        return;
+    }
+    router.push(href);
 }
 
 const SENTINEL_KEY = "synchroStreamLeaveGuard";
@@ -52,67 +52,92 @@ const SENTINEL_KEY = "synchroStreamLeaveGuard";
  * navigates (use `completeBackNavigation()` for a "back" destination).
  */
 export function usePartyLeaveGuard(
-  enabled: boolean,
-  onLeaveAttempt: LeaveGuardHandler,
+    enabled: boolean,
+    onLeaveAttempt: LeaveGuardHandler,
 ): void {
-  const handlerRef = useRef(onLeaveAttempt);
-  useEffect(() => {
-    handlerRef.current = onLeaveAttempt;
-  }, [onLeaveAttempt]);
+    const handlerRef = useRef(onLeaveAttempt);
+    useEffect(() => {
+        handlerRef.current = onLeaveAttempt;
+    }, [onLeaveAttempt]);
 
-  useEffect(() => {
-    if (!enabled || typeof window === "undefined") return;
+    useEffect(() => {
+        if (!enabled || typeof window === "undefined") return;
 
-    const handler: LeaveGuardHandler = (destination) => handlerRef.current(destination);
-    activeGuard = handler;
+        const handler: LeaveGuardHandler = (destination) =>
+            handlerRef.current(destination);
+        activeGuard = handler;
 
-    const onClick = (event: MouseEvent) => {
-      if (
-        event.defaultPrevented ||
-        event.button !== 0 ||
-        event.metaKey || event.ctrlKey || event.shiftKey || event.altKey
-      ) {
-        return;
-      }
-      const anchor = (event.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
-      if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+        const onClick = (event: MouseEvent) => {
+            if (
+                event.defaultPrevented ||
+                event.button !== 0 ||
+                event.metaKey ||
+                event.ctrlKey ||
+                event.shiftKey ||
+                event.altKey
+            ) {
+                return;
+            }
+            const anchor = (event.target as Element | null)?.closest?.(
+                "a[href]",
+            ) as HTMLAnchorElement | null;
+            if (
+                !anchor ||
+                anchor.target === "_blank" ||
+                anchor.hasAttribute("download")
+            )
+                return;
 
-      const url = new URL(anchor.href, window.location.href);
-      // External sites unload the page: that is the ambiguous (grace) path.
-      if (url.origin !== window.location.origin) return;
-      if (url.pathname === window.location.pathname) return;
+            const url = new URL(anchor.href, window.location.href);
+            // External sites unload the page: that is the ambiguous (grace) path.
+            if (url.origin !== window.location.origin) return;
+            if (url.pathname === window.location.pathname) return;
 
-      // Capture phase on document runs before React's root listener, so the
-      // Next <Link> handler never starts its own navigation.
-      event.preventDefault();
-      event.stopPropagation();
-      handler({ kind: "href", href: `${url.pathname}${url.search}${url.hash}` });
-    };
+            // Capture phase on document runs before React's root listener, so the
+            // Next <Link> handler never starts its own navigation.
+            event.preventDefault();
+            event.stopPropagation();
+            handler({
+                kind: "href",
+                href: `${url.pathname}${url.search}${url.hash}`,
+            });
+        };
 
-    // A sentinel entry above the party entry turns the first Back press into a
-    // popstate we can intercept, instead of an immediate navigation.
-    const currentState = (window.history.state ?? {}) as Record<string, unknown>;
-    if (!currentState[SENTINEL_KEY]) {
-      window.history.pushState({ ...currentState, [SENTINEL_KEY]: true }, "", window.location.href);
-    }
+        // A sentinel entry above the party entry turns the first Back press into a
+        // popstate we can intercept, instead of an immediate navigation.
+        const currentState = (window.history.state ?? {}) as Record<
+            string,
+            unknown
+        >;
+        if (!currentState[SENTINEL_KEY]) {
+            window.history.pushState(
+                { ...currentState, [SENTINEL_KEY]: true },
+                "",
+                window.location.href,
+            );
+        }
 
-    const onPopState = (event: PopStateEvent) => {
-      const state = (event.state ?? {}) as Record<string, unknown>;
-      if (state[SENTINEL_KEY]) return;
-      // Back was pressed: restore the sentinel (stay on the page) and ask.
-      window.history.pushState({ ...state, [SENTINEL_KEY]: true }, "", window.location.href);
-      handler({ kind: "back" });
-    };
+        const onPopState = (event: PopStateEvent) => {
+            const state = (event.state ?? {}) as Record<string, unknown>;
+            if (state[SENTINEL_KEY]) return;
+            // Back was pressed: restore the sentinel (stay on the page) and ask.
+            window.history.pushState(
+                { ...state, [SENTINEL_KEY]: true },
+                "",
+                window.location.href,
+            );
+            handler({ kind: "back" });
+        };
 
-    document.addEventListener("click", onClick, true);
-    window.addEventListener("popstate", onPopState);
+        document.addEventListener("click", onClick, true);
+        window.addEventListener("popstate", onPopState);
 
-    return () => {
-      if (activeGuard === handler) activeGuard = null;
-      document.removeEventListener("click", onClick, true);
-      window.removeEventListener("popstate", onPopState);
-    };
-  }, [enabled]);
+        return () => {
+            if (activeGuard === handler) activeGuard = null;
+            document.removeEventListener("click", onClick, true);
+            window.removeEventListener("popstate", onPopState);
+        };
+    }, [enabled]);
 }
 
 /**
@@ -120,5 +145,5 @@ export function usePartyLeaveGuard(
  * party entry to the page the user came from.
  */
 export function completeBackNavigation(): void {
-  window.history.go(-2);
+    window.history.go(-2);
 }

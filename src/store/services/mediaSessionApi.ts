@@ -1,5 +1,5 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { createAuthenticatedBaseQuery } from './authenticatedBaseQuery';
+import { createAuthenticatedBaseQuery } from "./authenticatedBaseQuery";
 
 export interface MediaSessionConnectionResponse {
     mediaSessionId: string;
@@ -45,9 +45,9 @@ export interface CreateLiveKitMediaSessionApiResponse {
 }
 
 export const mediaSessionApi = createApi({
-    reducerPath: 'mediaSessionApi',
+    reducerPath: "mediaSessionApi",
 
-    baseQuery: createAuthenticatedBaseQuery('/v1'),
+    baseQuery: createAuthenticatedBaseQuery("/v1"),
 
     endpoints: (builder) => ({
         getMediaSessionConnection: builder.mutation<
@@ -56,7 +56,7 @@ export const mediaSessionApi = createApi({
         >({
             query: (mediaSessionId) => ({
                 url: `/media-sessions/${mediaSessionId}/connect`,
-                method: 'POST',
+                method: "POST",
             }),
         }),
 
@@ -66,7 +66,7 @@ export const mediaSessionApi = createApi({
         >({
             query: (mediaSessionId) => ({
                 url: `/livekit/media-sessions/${mediaSessionId}/connect`,
-                method: 'POST',
+                method: "POST",
             }),
         }),
 
@@ -75,8 +75,8 @@ export const mediaSessionApi = createApi({
             string
         >({
             query: (roomId) => ({
-                url: '/livekit/media-sessions/create',
-                method: 'POST',
+                url: "/livekit/media-sessions/create",
+                method: "POST",
                 body: {
                     roomId,
                 },

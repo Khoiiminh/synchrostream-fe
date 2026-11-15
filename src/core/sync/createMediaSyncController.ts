@@ -23,7 +23,7 @@ export function createPartyMediaController(
         roomCode: string;
         userId: string;
         ownerId: string;
-    }
+    },
 ) {
     const engine = new SyncEngine(store);
     const remotePlaybackGuard = new RemotePlaybackGuard();

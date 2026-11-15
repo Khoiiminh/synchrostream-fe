@@ -6,394 +6,330 @@ import { Paper } from "@mantine/core";
 import { MediaSyncController } from "@/core/sync/MediaSyncController";
 import { QualityLevel } from "@/core/sync/ISyncAdapter";
 import PlayerControls from "./PlayerControls";
+import { createLogger } from "@/core/logging/logger";
+
+const log = createLogger("VideoPlayer");
 
 interface VideoPlayerProps {
-  controller: MediaSyncController | null;
+    controller: MediaSyncController | null;
 
-  onControllerAttachmentChange?: (
-    controller: MediaSyncController,
-    attached: boolean,
-  ) => void;
+    onControllerAttachmentChange?: (
+        controller: MediaSyncController,
+        attached: boolean,
+    ) => void;
 
-  isPlaying: boolean;
-  currentTime: number;
-  duration: number;
+    isPlaying: boolean;
+    currentTime: number;
+    duration: number;
 
-  qualityLevels: QualityLevel[];
+    qualityLevels: QualityLevel[];
 
-  onSeek: (value: number) => void;
-  onDurationChange: (duration: number) => void;
-  onQualityLevelsChange: (levels: QualityLevel[]) => void;
+    onSeek: (value: number) => void;
+    onDurationChange: (duration: number) => void;
+    onQualityLevelsChange: (levels: QualityLevel[]) => void;
 }
 
 export default function VideoPlayer({
-  controller,
-  onControllerAttachmentChange,
-  isPlaying,
-  currentTime,
-  duration,
-  qualityLevels,
-  onSeek,
-  onDurationChange,
-  onQualityLevelsChange,
-}: VideoPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const playerContainerRef = useRef<HTMLDivElement | null>(null);
-
-  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
-
-  const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
-  const [prevVolume, setPrevVolume] = useState(1);
-
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
-  const [showControls, setShowControls] = useState(true);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const [currentQuality, setCurrentQuality] = useState("Auto");
-  const [qualityMenuOpen, setQualityMenuOpen] = useState(false);
-
-  /*
-   * Attach the controller to the actual video element.
-   *
-   * VideoPlayer owns the DOM element, so VideoPlayer also owns
-   * the controller <-> video attachment lifecycle.
-   */
-  useEffect(() => {
-    if (!videoElement || !controller) {
-      return;
-    }
-
-    console.log("[AUDIO DEBUG]", {
-      videoVolume: videoElement.volume,
-      muted: videoElement.muted,
-    });
-
-    const audioSession = (
-      navigator as Navigator & {
-        audioSession?: {
-          type?: string;
-          state?: string;
-        };
-      }
-    ).audioSession;
-
-    if (audioSession) {
-      console.log("[AUDIO SESSION DEBUG]", {
-        type: audioSession.type,
-        state: audioSession.state,
-      });
-    } else {
-      console.log(
-        "[AUDIO SESSION DEBUG] Audio Session API is not supported.",
-      );
-    }
-
-    controller.attach(videoElement);
-
-    onControllerAttachmentChange?.(controller, true);
-
-    const handleDurationChange = () => {
-      onDurationChange(videoElement.duration || 0);
-    };
-
-    const syncQualityTracks = () => {
-      const levels = controller.getQualityLevels();
-
-      onQualityLevelsChange(levels);
-
-      const currentIndex = controller.getCurrentQualityIndex();
-
-      if (currentIndex === -1) {
-        setCurrentQuality("Auto");
-        return;
-      }
-
-      const currentLevel = levels.find(
-        (level) => level.index === currentIndex,
-      );
-
-      if (currentLevel) {
-        setCurrentQuality(`${currentLevel.height}p`);
-      }
-    };
-
-    videoElement.addEventListener("durationchange", handleDurationChange);
-    videoElement.addEventListener("loadedmetadata", handleDurationChange);
-    videoElement.addEventListener("loadedmetadata", syncQualityTracks);
-
-    return () => {
-      videoElement.removeEventListener(
-        "durationchange",
-        handleDurationChange,
-      );
-
-      videoElement.removeEventListener(
-        "loadedmetadata",
-        handleDurationChange,
-      );
-
-      videoElement.removeEventListener(
-        "loadedmetadata",
-        syncQualityTracks,
-      );
-
-      onControllerAttachmentChange?.(controller, false);
-
-      controller.detach();
-
-      onDurationChange(0);
-      onQualityLevelsChange([]);
-    };
-  }, [
-    videoElement,
     controller,
     onControllerAttachmentChange,
+    isPlaying,
+    currentTime,
+    duration,
+    qualityLevels,
+    onSeek,
     onDurationChange,
     onQualityLevelsChange,
-  ]);
+}: VideoPlayerProps) {
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const playerContainerRef = useRef<HTMLDivElement | null>(null);
 
-  /*
-   * Controls auto-hide timer.
-   */
-  useEffect(() => {
-    return () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  /*
-   * Native fullscreen state.
-   */
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-
-    document.addEventListener(
-      "fullscreenchange",
-      handleFullscreenChange,
+    const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(
+        null,
     );
 
-    return () => {
-      document.removeEventListener(
-        "fullscreenchange",
-        handleFullscreenChange,
-      );
+    const [volume, setVolume] = useState(1);
+    const [isMuted, setIsMuted] = useState(false);
+    const [prevVolume, setPrevVolume] = useState(1);
+
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    const [showControls, setShowControls] = useState(true);
+    const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const [currentQuality, setCurrentQuality] = useState("Auto");
+    const [qualityMenuOpen, setQualityMenuOpen] = useState(false);
+
+    /*
+     * Attach the controller to the actual video element.
+     *
+     * VideoPlayer owns the DOM element, so VideoPlayer also owns
+     * the controller <-> video attachment lifecycle.
+     */
+    useEffect(() => {
+        if (!videoElement || !controller) {
+            return;
+        }
+
+        controller.attach(videoElement);
+
+        onControllerAttachmentChange?.(controller, true);
+
+        const handleDurationChange = () => {
+            onDurationChange(videoElement.duration || 0);
+        };
+
+        const syncQualityTracks = () => {
+            const levels = controller.getQualityLevels();
+
+            onQualityLevelsChange(levels);
+
+            const currentIndex = controller.getCurrentQualityIndex();
+
+            if (currentIndex === -1) {
+                setCurrentQuality("Auto");
+                return;
+            }
+
+            const currentLevel = levels.find(
+                (level) => level.index === currentIndex,
+            );
+
+            if (currentLevel) {
+                setCurrentQuality(`${currentLevel.height}p`);
+            }
+        };
+
+        videoElement.addEventListener("durationchange", handleDurationChange);
+        videoElement.addEventListener("loadedmetadata", handleDurationChange);
+        videoElement.addEventListener("loadedmetadata", syncQualityTracks);
+
+        return () => {
+            videoElement.removeEventListener(
+                "durationchange",
+                handleDurationChange,
+            );
+
+            videoElement.removeEventListener(
+                "loadedmetadata",
+                handleDurationChange,
+            );
+
+            videoElement.removeEventListener(
+                "loadedmetadata",
+                syncQualityTracks,
+            );
+
+            onControllerAttachmentChange?.(controller, false);
+
+            controller.detach();
+
+            onDurationChange(0);
+            onQualityLevelsChange([]);
+        };
+    }, [
+        videoElement,
+        controller,
+        onControllerAttachmentChange,
+        onDurationChange,
+        onQualityLevelsChange,
+    ]);
+
+    /*
+     * Controls auto-hide timer.
+     */
+    useEffect(() => {
+        return () => {
+            if (controlsTimeoutRef.current) {
+                clearTimeout(controlsTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    /*
+     * Native fullscreen state.
+     */
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+
+        document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+        return () => {
+            document.removeEventListener(
+                "fullscreenchange",
+                handleFullscreenChange,
+            );
+        };
+    }, []);
+
+    const handleMouseMove = () => {
+        setShowControls(true);
+
+        if (controlsTimeoutRef.current) {
+            clearTimeout(controlsTimeoutRef.current);
+        }
+
+        controlsTimeoutRef.current = setTimeout(() => {
+            if (isPlaying) {
+                setShowControls(false);
+            }
+        }, 2500);
     };
-  }, []);
 
-  // useEffect(() => {
-  //   if (!videoElement) {
-  //     return;
-  //   }
+    const handleMouseLeave = () => {
+        if (controlsTimeoutRef.current) {
+            clearTimeout(controlsTimeoutRef.current);
+        }
 
-  //   const logAudioState = () => {
-  //     console.log("[AUDIO DEBUG]", {
-  //       videoVolume: videoElement.volume,
-  //       muted: videoElement.muted,
-  //     });
-  //   };
+        if (isPlaying) {
+            setShowControls(false);
+        }
+    };
 
-  //   logAudioState();
+    const handleVolumeChange = (value: number) => {
+        setVolume(value);
 
-  //   const interval = window.setInterval(() => {
-  //     logAudioState();
-  //   }, 1000);
+        if (videoRef.current) {
+            videoRef.current.volume = value;
+        }
 
-  //   return () => {
-  //     window.clearInterval(interval);
-  //   };
-  // }, [videoElement]);
+        if (value > 0 && isMuted) {
+            setIsMuted(false);
+        }
+    };
 
-  const handleMouseMove = () => {
-    setShowControls(true);
+    const toggleMute = () => {
+        if (isMuted) {
+            setIsMuted(false);
 
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
-    }
+            handleVolumeChange(prevVolume > 0 ? prevVolume : 1);
 
-    controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying) {
-        setShowControls(false);
-      }
-    }, 2500);
-  };
+            return;
+        }
 
-  const handleMouseLeave = () => {
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
-    }
+        setPrevVolume(volume);
+        setIsMuted(true);
 
-    if (isPlaying) {
-      setShowControls(false);
-    }
-  };
+        if (videoRef.current) {
+            videoRef.current.volume = 0;
+        }
+    };
 
-  const handleVolumeChange = (value: number) => {
-    setVolume(value);
+    const handleQualityChange = (levelIndex: number | "auto") => {
+        if (!controller) {
+            return;
+        }
 
-    if (videoRef.current) {
-      videoRef.current.volume = value;
+        if (levelIndex === "auto") {
+            controller.setQualityLevel(-1);
+            setCurrentQuality("Auto");
+            return;
+        }
 
-      console.log("[AUDIO DEBUG]", {
-        videoVolume: videoRef.current.volume,
-        muted: videoRef.current.muted,
-      });
-    }
+        controller.setQualityLevel(levelIndex);
 
-    if (value > 0 && isMuted) {
-      setIsMuted(false);
-    }
-  };
+        const selectedLevel = qualityLevels.find(
+            (level) => level.index === levelIndex,
+        );
 
-  const toggleMute = () => {
-    if (isMuted) {
-      setIsMuted(false);
+        if (selectedLevel) {
+            setCurrentQuality(`${selectedLevel.height}p`);
+        }
+    };
 
-      handleVolumeChange(
-        prevVolume > 0 ? prevVolume : 1,
-      );
+    const toggleFullscreen = async () => {
+        if (!playerContainerRef.current) {
+            return;
+        }
 
-      return;
-    }
-
-    setPrevVolume(volume);
-    setIsMuted(true);
-
-    if (videoRef.current) {
-      videoRef.current.volume = 0;
-
-      console.log("[AUDIO DEBUG]", {
-        videoVolume: videoRef.current.volume,
-        muted: videoRef.current.muted,
-      });
-    }
-  };
-
-  const handleQualityChange = (
-    levelIndex: number | "auto",
-  ) => {
-    if (!controller) {
-      return;
-    }
-
-    if (levelIndex === "auto") {
-      controller.setQualityLevel(-1);
-      setCurrentQuality("Auto");
-      return;
-    }
-
-    controller.setQualityLevel(levelIndex);
-
-    const selectedLevel = qualityLevels.find(
-      (level) => level.index === levelIndex,
-    );
-
-    if (selectedLevel) {
-      setCurrentQuality(`${selectedLevel.height}p`);
-    }
-  };
-
-  const toggleFullscreen = async () => {
-    if (!playerContainerRef.current) {
-      return;
-    }
-
-    try {
-      if (!document.fullscreenElement) {
-        await playerContainerRef.current.requestFullscreen();
-      } else {
-        await document.exitFullscreen();
-      }
-    } catch (error) {
-      console.error(
-        "Failed to shift display bounds context configuration:",
-        error,
-      );
-    }
-  };
-
-  return (
-    <div
-      ref={playerContainerRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      className={`w-full flex items-center justify-center bg-black transition-none relative overflow-hidden rounded-md border border-zinc-800/50 ${
-        showControls
-          ? "cursor-default"
-          : "cursor-none"
-      }`}
-      style={
-        isFullscreen
-          ? {
-              width: "100vw",
-              height: "100vh",
-              maxHeight: "100vh",
-              maxWidth: "100vw",
+        try {
+            if (!document.fullscreenElement) {
+                await playerContainerRef.current.requestFullscreen();
+            } else {
+                await document.exitFullscreen();
             }
-          : {
-              aspectRatio: "16/9",
-              maxHeight: "calc(100vh - 220px)",
-            }
-      }
-    >
-      <Paper
-        radius="none"
-        className="bg-transparent relative w-full h-full overflow-hidden z-10 flex items-center justify-center"
-        style={{
-          width: "100%",
-          height: "100%",
-          maxWidth: "100%",
-          maxHeight: "100%",
-        }}
-      >
-        <video
-          ref={(element) => {
-            videoRef.current = element;
-            setVideoElement(element);
-          }}
-          className="w-full h-full object-contain block bg-black"
-          controls={false}
-          playsInline
-        />
+        } catch (error) {
+            log.error(
+                "Failed to shift display bounds context configuration:",
+                error,
+            );
+        }
+    };
 
+    return (
         <div
-          className={`absolute bottom-0 left-0 right-0 w-full transition-opacity duration-300 z-30 ${
-            showControls
-              ? "opacity-100 pointer-events-auto"
-              : "opacity-0 pointer-events-none"
-          }`}
+            ref={playerContainerRef}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            className={`w-full flex items-center justify-center bg-black transition-none relative overflow-hidden rounded-md border border-zinc-800/50 ${
+                showControls ? "cursor-default" : "cursor-none"
+            }`}
+            style={
+                isFullscreen
+                    ? {
+                          width: "100vw",
+                          height: "100vh",
+                          maxHeight: "100vh",
+                          maxWidth: "100vw",
+                      }
+                    : {
+                          aspectRatio: "16/9",
+                          maxHeight: "calc(100vh - 220px)",
+                      }
+            }
         >
-          <PlayerControls
-            videoElement={videoElement}
-            controller={controller}
-            isPlaying={isPlaying}
-            currentTime={currentTime}
-            duration={duration}
-            volume={volume}
-            isMuted={isMuted}
-            isFullscreen={isFullscreen}
-            qualityLevels={qualityLevels}
-            currentQuality={currentQuality}
-            qualityMenuOpen={qualityMenuOpen}
-            onVolumeChange={handleVolumeChange}
-            onMuteToggle={toggleMute}
-            onSeek={onSeek}
-            onQualityMenuToggle={() =>
-              setQualityMenuOpen((open) => !open)
-            }
-            onQualityMenuClose={() =>
-              setQualityMenuOpen(false)
-            }
-            onQualityChange={handleQualityChange}
-            onFullscreenToggle={toggleFullscreen}
-          />
+            <Paper
+                radius="none"
+                className="bg-transparent relative w-full h-full overflow-hidden z-10 flex items-center justify-center"
+                style={{
+                    width: "100%",
+                    height: "100%",
+                    maxWidth: "100%",
+                    maxHeight: "100%",
+                }}
+            >
+                <video
+                    ref={(element) => {
+                        videoRef.current = element;
+                        setVideoElement(element);
+                    }}
+                    className="w-full h-full object-contain block bg-black"
+                    controls={false}
+                    playsInline
+                />
+
+                <div
+                    className={`absolute bottom-0 left-0 right-0 w-full transition-opacity duration-300 z-30 ${
+                        showControls
+                            ? "opacity-100 pointer-events-auto"
+                            : "opacity-0 pointer-events-none"
+                    }`}
+                >
+                    <PlayerControls
+                        videoElement={videoElement}
+                        controller={controller}
+                        isPlaying={isPlaying}
+                        currentTime={currentTime}
+                        duration={duration}
+                        volume={volume}
+                        isMuted={isMuted}
+                        isFullscreen={isFullscreen}
+                        qualityLevels={qualityLevels}
+                        currentQuality={currentQuality}
+                        qualityMenuOpen={qualityMenuOpen}
+                        onVolumeChange={handleVolumeChange}
+                        onMuteToggle={toggleMute}
+                        onSeek={onSeek}
+                        onQualityMenuToggle={() =>
+                            setQualityMenuOpen((open) => !open)
+                        }
+                        onQualityMenuClose={() => setQualityMenuOpen(false)}
+                        onQualityChange={handleQualityChange}
+                        onFullscreenToggle={toggleFullscreen}
+                    />
+                </div>
+            </Paper>
         </div>
-      </Paper>
-    </div>
-  );
+    );
 }

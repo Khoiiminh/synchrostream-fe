@@ -2,6 +2,9 @@ import { ParticipantNode } from "@/store/slices/roomSlice";
 import { ParticipantMedia } from "@/core/types/ParticipantMedia.type";
 import React, { useEffect, useRef, useState } from "react";
 import { AspectRatio, Box, Text } from "@mantine/core";
+import { createLogger } from "@/core/logging/logger";
+
+const log = createLogger("ParticipantMediaMesh");
 
 interface ParticipantMediaMeshProp {
     members: ParticipantNode[];
@@ -19,18 +22,10 @@ interface ParticipantMediaTileProps {
     videoSize: number;
     videoOpacity: number;
 
-    onPointerDown: (
-        event: React.PointerEvent<HTMLDivElement>
-    ) => void;
-    onPointerMove: (
-        event: React.PointerEvent<HTMLDivElement>
-    ) => void;
-    onPointerUp: (
-        event: React.PointerEvent<HTMLDivElement>
-    ) => void;
-    onPointerCancel: (
-        event: React.PointerEvent<HTMLDivElement>
-    ) => void;
+    onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
+    onPointerMove: (event: React.PointerEvent<HTMLDivElement>) => void;
+    onPointerUp: (event: React.PointerEvent<HTMLDivElement>) => void;
+    onPointerCancel: (event: React.PointerEvent<HTMLDivElement>) => void;
 }
 
 interface MeshPosition {
@@ -48,7 +43,6 @@ function ParticipantMediaTile({
     onPointerMove,
     onPointerUp,
     onPointerCancel,
-
 }: ParticipantMediaTileProps) {
     const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -71,15 +65,11 @@ function ParticipantMediaTile({
         const playVideo = async () => {
             try {
                 await videoElement.play();
-
             } catch (error) {
-                console.debug(
-                    "[ParticipantMediaTile] Video autoplay was blocked",
-                    {
-                        participantId: member.participantId,
-                        error,
-                    },
-                );
+                log.debug("Video autoplay was blocked", {
+                    participantId: member.participantId,
+                    error,
+                });
             }
         };
 
@@ -90,10 +80,7 @@ function ParticipantMediaTile({
                 videoElement.srcObject = null;
             }
         };
-    }, [
-        media,
-        member.participantId,
-    ]);
+    }, [media, member.participantId]);
 
     useEffect(() => {
         if (!audioRef.current) {
@@ -112,15 +99,11 @@ function ParticipantMediaTile({
         const playAudio = async () => {
             try {
                 await audioElement.play();
-
             } catch (error) {
-                console.debug(
-                    "[ParticipantMediaTile] Audio autoplay was blocked",
-                    {
-                        participantId: member.participantId,
-                        error,
-                    },
-                );
+                log.debug("Audio autoplay was blocked", {
+                    participantId: member.participantId,
+                    error,
+                });
             }
         };
 
@@ -131,10 +114,7 @@ function ParticipantMediaTile({
                 audioElement.srcObject = null;
             }
         };
-    }, [
-        media,
-        member.participantId,
-    ]);
+    }, [media, member.participantId]);
 
     const hasVideo = media?.hasVideo === true;
     const hasAudio = media?.hasAudio === true;
@@ -153,70 +133,51 @@ function ParticipantMediaTile({
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerCancel}
         >
-            <AspectRatio
-                ratio={4 / 3}
-                className="w-full h-full relative"
-            >
+            <AspectRatio ratio={4 / 3} className="w-full h-full relative">
                 <Box className="w-full h-full bg-zinc-900 relative overflow-hidden">
-                {hasVideo ? (
-                    <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted={isLocalParticipant}
-                        className="w-full h-full object-cover"
-                    />
-                ) : (
-                    <Box className="w-full h-full flex items-center justify-center">
-                        <Text
-                            size="10px"
-                            c="dimmed"
-                            className="font-mono"
-                        >
+                    {hasVideo ? (
+                        <video
+                            ref={videoRef}
+                            autoPlay
+                            playsInline
+                            muted={isLocalParticipant}
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <Box className="w-full h-full flex items-center justify-center">
+                            <Text size="10px" c="dimmed" className="font-mono">
+                                {member.username}
+                            </Text>
+                        </Box>
+                    )}
+
+                    <Box className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-black/50">
+                        <Text size="10px" c="white" className="font-mono">
                             {member.username}
+                            {isLocalParticipant ? " (You)" : ""}
                         </Text>
+
+                        {!hasVideo && hasAudio && (
+                            <Text size="9px" c="dimmed" className="font-mono">
+                                Audio only
+                            </Text>
+                        )}
+
+                        {!hasVideo && !hasAudio && (
+                            <Text size="9px" c="dimmed" className="font-mono">
+                                Camera and microphone off
+                            </Text>
+                        )}
                     </Box>
-                )}
 
-                <Box className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-black/50">
-                    <Text
-                        size="10px"
-                        c="white"
-                        className="font-mono"
-                    >
-                        {member.username}
-                        {isLocalParticipant ? " (You)" : ""}
-                    </Text>
-
-                    {!hasVideo && hasAudio && (
-                    <Text
-                        size="9px"
-                        c="dimmed"
-                        className="font-mono"
-                    >
-                        Audio only
-                    </Text>
+                    {hasAudio && (
+                        <audio
+                            ref={audioRef}
+                            autoPlay
+                            playsInline
+                            controls={false}
+                        />
                     )}
-
-                    {!hasVideo && !hasAudio && (
-                    <Text
-                        size="9px"
-                        c="dimmed"
-                        className="font-mono"
-                    >
-                        Camera and microphone off
-                    </Text>
-                    )}
-                </Box>
-
-                {hasAudio && (
-                    <audio
-                    ref={audioRef}
-                    autoPlay
-                    playsInline
-                    controls={false}
-                    />
-                )}
                 </Box>
             </AspectRatio>
         </Box>
@@ -232,15 +193,12 @@ export default function ParticipantMediaMesh({
     videoOpacity,
 }: ParticipantMediaMeshProp) {
     const mediaByParticipantId = new Map(
-        participantMedia.map((media) => [
-            media.participantId,
-            media,
-        ])
+        participantMedia.map((media) => [media.participantId, media]),
     );
 
     /**
      * The entire participant mesh is treated as one floating overlay.
-     * 
+     *
      * x/y represent the mesh's position relative to the viewport.
      */
     const [position, setPosition] = useState<MeshPosition>({
@@ -262,9 +220,7 @@ export default function ParticipantMediaMesh({
         startPositionY: 0,
     });
 
-    const handleDragStart = (
-        event: React.PointerEvent<HTMLDivElement>,
-    ) => {
+    const handleDragStart = (event: React.PointerEvent<HTMLDivElement>) => {
         if (event.button !== 0) return;
 
         dragStateRef.current = {
@@ -278,9 +234,7 @@ export default function ParticipantMediaMesh({
         event.currentTarget.setPointerCapture(event.pointerId);
     };
 
-    const handleDragMove = (
-        event: React.PointerEvent<HTMLDivElement>
-    ) => {
+    const handleDragMove = (event: React.PointerEvent<HTMLDivElement>) => {
         if (!dragStateRef.current.dragging) return;
 
         const deltaX = event.clientX - dragStateRef.current.startPointerX;
@@ -292,9 +246,7 @@ export default function ParticipantMediaMesh({
         });
     };
 
-    const handleDragEnd = (
-        event: React.PointerEvent<HTMLDivElement>
-    ) => {
+    const handleDragEnd = (event: React.PointerEvent<HTMLDivElement>) => {
         if (!dragStateRef.current.dragging) return;
 
         dragStateRef.current.dragging = false;
@@ -314,9 +266,11 @@ export default function ParticipantMediaMesh({
             }}
         >
             {members.map((member) => {
-                const isLocalParticipant = member.participantId === localParticipantId;
+                const isLocalParticipant =
+                    member.participantId === localParticipantId;
 
-                let media = mediaByParticipantId.get(member.participantId) ?? null;
+                let media =
+                    mediaByParticipantId.get(member.participantId) ?? null;
 
                 if (isLocalParticipant && localStream) {
                     const videoTrack = localStream.getVideoTracks()[0];
@@ -335,16 +289,16 @@ export default function ParticipantMediaMesh({
 
                 return (
                     <ParticipantMediaTile
-                    key={member.participantId}
-                    member={member}
-                    media={media}
-                    isLocalParticipant={isLocalParticipant}
-                    videoSize={videoSize}
-                    videoOpacity={videoOpacity}
-                    onPointerDown={handleDragStart}
-                    onPointerMove={handleDragMove}
-                    onPointerUp={handleDragEnd}
-                    onPointerCancel={handleDragEnd}
+                        key={member.participantId}
+                        member={member}
+                        media={media}
+                        isLocalParticipant={isLocalParticipant}
+                        videoSize={videoSize}
+                        videoOpacity={videoOpacity}
+                        onPointerDown={handleDragStart}
+                        onPointerMove={handleDragMove}
+                        onPointerUp={handleDragEnd}
+                        onPointerCancel={handleDragEnd}
                     />
                 );
             })}

@@ -70,11 +70,11 @@ export class SyncTestRunner {
 
     /**
      * Requests cancellation of the currently running synchronization test.
-     * 
+     *
      * Aborts the cative AbortController, allowing the test's asynchronous
-     * wait operations to terminate early and the run to finish with a 
+     * wait operations to terminate early and the run to finish with a
      * `CANCELLED` status.
-     * 
+     *
      * Does nothing if no test is currently running.
      */
     public cancel(): void {
@@ -84,15 +84,15 @@ export class SyncTestRunner {
     /**
      * Runs a repid-seek synchronization scenario and collects playback
      * drift samples throughtout the test and observation periods.
-     * 
-     * The scenario alternates seek commands between the configured minimum 
+     *
+     * The scenario alternates seek commands between the configured minimum
      * and maximum positions at the specified interval. After the seek phase,
      * it waits for the observation window to capture synchronization behavior.
-     * 
-     * Only one scenario can run at a time. The returned result includes the 
+     *
+     * Only one scenario can run at a time. The returned result includes the
      * execution status, timing information, seek count, playback positions,
      * sample counts, and collected drift samples.
-     * 
+     *
      * @param controller - Media synchronization controller used to issue
      * seek commands, read playback positions, and access synchronization diagnostics.
      * @param config - Configuration specifying the test duration, seek interval,
@@ -103,17 +103,14 @@ export class SyncTestRunner {
      *
      * @throws {Error} If another synchronization test is already running.
      * @throws {Error} If the supplied configuration is invalid.
-     * @throws {Error} If synchronization diagnostics are unavailable. 
+     * @throws {Error} If synchronization diagnostics are unavailable.
      */
     public async runRapidSeekScenario(
         controller: MediaSyncController,
         config: RapidSeekScenarioConfig = DEFAULT_RAPID_SEEK_CONFIG,
     ): Promise<SyncTestRunResult> {
-        
         if (this.isRunning) {
-            throw new Error(
-                "A synchronization test is already running.",
-            );
+            throw new Error("A synchronization test is already running.");
         }
 
         this.validateConfig(config);
@@ -201,8 +198,7 @@ export class SyncTestRunner {
 
         const samples = finalSamples.filter((sample) => {
             return (
-                sample.timestamp >= startedAt &&
-                sample.timestamp <= finishedAt
+                sample.timestamp >= startedAt && sample.timestamp <= finishedAt
             );
         });
 
@@ -265,34 +261,23 @@ export class SyncTestRunner {
      *
      * @throws {Error} If any configuration value violates the required constraints.
      */
-    private validateConfig(
-        config: RapidSeekScenarioConfig,
-    ): void {
-        if (
-            !Number.isFinite(config.durationMs) ||
-            config.durationMs <= 0
-        ) {
-            throw new Error(
-                "Test duration must be a positive number.",
-            );
+    private validateConfig(config: RapidSeekScenarioConfig): void {
+        if (!Number.isFinite(config.durationMs) || config.durationMs <= 0) {
+            throw new Error("Test duration must be a positive number.");
         }
 
         if (
             !Number.isFinite(config.seekIntervalMs) ||
             config.seekIntervalMs <= 0
         ) {
-            throw new Error(
-                "Seek interval must be a positive number.",
-            );
+            throw new Error("Seek interval must be a positive number.");
         }
 
         if (
             !Number.isFinite(config.observationWindowMs) ||
             config.observationWindowMs < 0
         ) {
-            throw new Error(
-                "Observation window must be zero or greater.",
-            );
+            throw new Error("Observation window must be zero or greater.");
         }
 
         if (
@@ -319,10 +304,7 @@ export class SyncTestRunner {
      * @returns A promise resolving to `true` if the wait completes normally,
      * or `false` if cancellation occurs before completion.
      */
-    private wait(
-        durationMs: number,
-        signal: AbortSignal,
-    ): Promise<boolean> {
+    private wait(durationMs: number, signal: AbortSignal): Promise<boolean> {
         if (signal.aborted) {
             return Promise.resolve(false);
         }
