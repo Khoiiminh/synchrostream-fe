@@ -2,179 +2,146 @@
 
 import React, { useRef, useState } from "react";
 import {
-  Paper,
-  Stack,
-  Slider,
-  Text,
-  Box,
-  Group,
-  Tooltip,
-  ActionIcon,
+    Paper,
+    Stack,
+    Slider,
+    Text,
+    Box,
+    Group,
+    Tooltip,
+    ActionIcon,
 } from "@mantine/core";
 import {
-  Sliders,
-  Eye,
-  Maximize2,
-  Copy,
-  Ticket,
-  ChevronUp,
-  ChevronDown,
+    Sliders,
+    Eye,
+    Maximize2,
+    Copy,
+    Ticket,
+    ChevronUp,
+    ChevronDown,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setUiStyles } from "@/store/slices/roomSlice";
 
 interface PanelPosition {
-  x: number;
-  y: number;
+    x: number;
+    y: number;
 }
 
 export default function StyleControllerPanel() {
-  const dispatch = useAppDispatch();
+    const dispatch = useAppDispatch();
 
-  const activeRoom = useAppSelector(
-    (state) => state.room.activeRoom,
-  );
+    const activeRoom = useAppSelector((state) => state.room.activeRoom);
 
-  const { videoSize, videoOpacity } = useAppSelector(
-    (state) => state.room.uiOptions,
-  );
+    const { videoSize, videoOpacity } = useAppSelector(
+        (state) => state.room.uiOptions,
+    );
 
-  const [isMinimized, setIsMinimized] = useState(false);
+    const [isMinimized, setIsMinimized] = useState(false);
 
-  const [copiedCode, setCopiedCode] = useState(false);
-  const [copiedPass, setCopiedPass] = useState(false);
+    const [copiedCode, setCopiedCode] = useState(false);
+    const [copiedPass, setCopiedPass] = useState(false);
 
-  const [position, setPosition] = useState<PanelPosition>({
-    x: 24,
-    y: 24,
-  });
+    const [position, setPosition] = useState<PanelPosition>({
+        x: 24,
+        y: 24,
+    });
 
-  const dragStateRef = useRef<{
-    dragging: boolean;
-    startPointerX: number;
-    startPointerY: number;
-    startPositionX: number;
-    startPositionY: number;
-  }>({
-    dragging: false,
-    startPointerX: 0,
-    startPointerY: 0,
-    startPositionX: 0,
-    startPositionY: 0,
-  });
+    const dragStateRef = useRef<{
+        dragging: boolean;
+        startPointerX: number;
+        startPointerY: number;
+        startPositionX: number;
+        startPositionY: number;
+    }>({
+        dragging: false,
+        startPointerX: 0,
+        startPointerY: 0,
+        startPositionX: 0,
+        startPositionY: 0,
+    });
 
-  const didDragRef = useRef(false);
+    const didDragRef = useRef(false);
 
-  const handleDragStart = (
-    event: React.PointerEvent<HTMLDivElement>,
-  ) => {
-    if (event.button !== 0) {
-      return;
-    }
+    const handleDragStart = (event: React.PointerEvent<HTMLDivElement>) => {
+        if (event.button !== 0) {
+            return;
+        }
 
-    dragStateRef.current = {
-      dragging: true,
-      startPointerX: event.clientX,
-      startPointerY: event.clientY,
-      startPositionX: position.x,
-      startPositionY: position.y,
+        dragStateRef.current = {
+            dragging: true,
+            startPointerX: event.clientX,
+            startPointerY: event.clientY,
+            startPositionX: position.x,
+            startPositionY: position.y,
+        };
+
+        didDragRef.current = false;
+
+        event.currentTarget.setPointerCapture(event.pointerId);
     };
 
-    didDragRef.current = false;
+    const handleDragMove = (event: React.PointerEvent<HTMLDivElement>) => {
+        if (!dragStateRef.current.dragging) {
+            return;
+        }
 
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
+        const deltaX = event.clientX - dragStateRef.current.startPointerX;
 
-  const handleDragMove = (
-    event: React.PointerEvent<HTMLDivElement>,
-  ) => {
-    if (!dragStateRef.current.dragging) {
-      return;
-    }
+        const deltaY = event.clientY - dragStateRef.current.startPointerY;
 
-    const deltaX =
-      event.clientX -
-      dragStateRef.current.startPointerX;
+        if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+            didDragRef.current = true;
+        }
 
-    const deltaY =
-      event.clientY -
-      dragStateRef.current.startPointerY;
+        setPosition({
+            x: Math.max(0, dragStateRef.current.startPositionX + deltaX),
+            y: Math.max(0, dragStateRef.current.startPositionY + deltaY),
+        });
+    };
 
-    if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
-      didDragRef.current = true;
-    }
+    const handleDragEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+        if (!dragStateRef.current.dragging) {
+            return;
+        }
 
-    setPosition({
-      x: Math.max(
-        0,
-        dragStateRef.current.startPositionX + deltaX,
-      ),
-      y: Math.max(
-        0,
-        dragStateRef.current.startPositionY + deltaY,
-      ),
-    });
-  };
+        dragStateRef.current.dragging = false;
 
-  const handleDragEnd = (
-    event: React.PointerEvent<HTMLDivElement>,
-  ) => {
-    if (!dragStateRef.current.dragging) {
-      return;
-    }
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+    };
 
-    dragStateRef.current.dragging = false;
+    const handleHeaderClick = () => {
+        // A drag should never also trigger minimize.
+        if (didDragRef.current) {
+            didDragRef.current = false;
+            return;
+        }
 
-    if (
-      event.currentTarget.hasPointerCapture(
-        event.pointerId,
-      )
-    ) {
-      event.currentTarget.releasePointerCapture(
-        event.pointerId,
-      );
-    }
-  };
+        setIsMinimized((previous) => !previous);
+    };
 
-  const handleHeaderClick = () => {
-    // A drag should never also trigger minimize.
-    if (didDragRef.current) {
-      didDragRef.current = false;
-      return;
-    }
+    const handleCopyText = (p: { text: string; type: "code" | "pass" }) => {
+        navigator.clipboard.writeText(p.text);
 
-    setIsMinimized((previous) => !previous);
-  };
+        if (p.type === "code") {
+            setCopiedCode(true);
 
-  const handleCopyText = (p: {
-    text: string;
-    type: "code" | "pass";
-  }) => {
-    navigator.clipboard.writeText(p.text);
+            setTimeout(() => setCopiedCode(false), 2000);
+        } else {
+            setCopiedPass(true);
 
-    if (p.type === "code") {
-      setCopiedCode(true);
+            setTimeout(() => setCopiedPass(false), 2000);
+        }
+    };
 
-      setTimeout(
-        () => setCopiedCode(false),
-        2000,
-      );
-    } else {
-      setCopiedPass(true);
-
-      setTimeout(
-        () => setCopiedPass(false),
-        2000,
-      );
-    }
-  };
-
-  return (
-    <Paper
-      withBorder
-      p={isMinimized ? "7px" : "sm"}
-      radius="md"
-      className="
+    return (
+        <Paper
+            withBorder
+            p={isMinimized ? "7px" : "sm"}
+            radius="md"
+            className="
         fixed
         z-50
         bg-zinc-900/90
@@ -186,90 +153,87 @@ export default function StyleControllerPanel() {
         duration-200
         ease-in-out
       "
-      style={{
-        left: position.x,
-        top: position.y,
-        width: isMinimized ? "fit-content" : 260,
-      }}
-    >
-      <Stack gap="xs">
-        {/*
-         * HEADER / DRAG HANDLE
-         *
-         * The same area is used for:
-         * - dragging
-         * - minimizing/restoring
-         */}
-        <Group
-          justify="space-between"
-          className="cursor-grab active:cursor-grabbing"
-          onPointerDown={handleDragStart}
-          onPointerMove={handleDragMove}
-          onPointerUp={handleDragEnd}
-          onPointerCancel={handleDragEnd}
-          onClick={handleHeaderClick}
-          style={{
-            touchAction: "none",
-          }}
+            style={{
+                left: position.x,
+                top: position.y,
+                width: isMinimized ? "fit-content" : 260,
+            }}
         >
-          <Group gap="xs">
-            <Sliders
-              size={14}
-              className="text-teal-400"
-            />
+            <Stack gap="xs">
+                {/*
+                 * HEADER / DRAG HANDLE
+                 *
+                 * The same area is used for:
+                 * - dragging
+                 * - minimizing/restoring
+                 */}
+                <Group
+                    justify="space-between"
+                    className="cursor-grab active:cursor-grabbing"
+                    onPointerDown={handleDragStart}
+                    onPointerMove={handleDragMove}
+                    onPointerUp={handleDragEnd}
+                    onPointerCancel={handleDragEnd}
+                    onClick={handleHeaderClick}
+                    style={{
+                        touchAction: "none",
+                    }}
+                >
+                    <Group gap="xs">
+                        <Sliders size={14} className="text-teal-400" />
 
-            <Text
-              size="xs"
-              fw={700}
-              className="
+                        <Text
+                            size="xs"
+                            fw={700}
+                            className="
                 text-zinc-200
                 uppercase
                 tracking-wide
                 whitespace-nowrap
               "
-            >
-              Canvas Overlay HUD
-            </Text>
-          </Group>
+                        >
+                            Canvas Overlay HUD
+                        </Text>
+                    </Group>
 
-          <ActionIcon
-            variant="transparent"
-            size="xs"
-            color="zinc.4"
-            style={{
-              pointerEvents: "none",
-            }}
-          >
-            {isMinimized ? (
-              <ChevronUp size={14} />
-            ) : (
-              <ChevronDown size={14} />
-            )}
-          </ActionIcon>
-        </Group>
+                    <ActionIcon
+                        variant="transparent"
+                        size="xs"
+                        color="zinc.4"
+                        style={{
+                            pointerEvents: "none",
+                        }}
+                    >
+                        {isMinimized ? (
+                            <ChevronUp size={14} />
+                        ) : (
+                            <ChevronDown size={14} />
+                        )}
+                    </ActionIcon>
+                </Group>
 
-        {/*
-         * CONTENT
-         *
-         * Completely disappears when minimized.
-         */}
-        <div
-          className={`
+                {/*
+                 * CONTENT
+                 *
+                 * Completely disappears when minimized.
+                 */}
+                <div
+                    className={`
             transition-all
             duration-300
             ease-in-out
             overflow-hidden
             ${
-              isMinimized
-                ? "max-h-0 opacity-0 pointer-events-none"
-                : "max-h-100 opacity-100 pt-2"
+                isMinimized
+                    ? "max-h-0 opacity-0 pointer-events-none"
+                    : "max-h-100 opacity-100 pt-2"
             }
           `}
-        >
-          <Stack gap="xs">
-            {activeRoom && (
-              <Box
-                className="
+                >
+                    <Stack gap="xs">
+                        {activeRoom && (
+                            <Box
+                                className="
                   bg-zinc-950/90
                   border
                   border-teal-500/30
@@ -278,49 +242,49 @@ export default function StyleControllerPanel() {
                   shadow-inner
                   mb-1
                 "
-              >
-                <Group
-                  gap="xs"
-                  mb={6}
-                  className="
+                            >
+                                <Group
+                                    gap="xs"
+                                    mb={6}
+                                    className="
                     border-b
                     border-zinc-800
                     pb-1
                   "
-                >
-                  <Ticket
-                    size={12}
-                    className="text-teal-400"
-                  />
+                                >
+                                    <Ticket
+                                        size={12}
+                                        className="text-teal-400"
+                                    />
 
-                  <Text
-                    size="10px"
-                    fw={800}
-                    className="
+                                    <Text
+                                        size="10px"
+                                        fw={800}
+                                        className="
                       text-teal-400
                       tracking-wider
                       uppercase
                       font-sans
                     "
-                  >
-                    Room Access Keys
-                  </Text>
-                </Group>
+                                    >
+                                        Room Access Keys
+                                    </Text>
+                                </Group>
 
-                <Stack gap={4}>
-                  <Group justify="space-between">
-                    <Text
-                      size="11px"
-                      className="text-zinc-400"
-                    >
-                      Room Code:
-                    </Text>
+                                <Stack gap={4}>
+                                    <Group justify="space-between">
+                                        <Text
+                                            size="11px"
+                                            className="text-zinc-400"
+                                        >
+                                            Room Code:
+                                        </Text>
 
-                    <Group gap={4}>
-                      <Text
-                        size="11px"
-                        fw={700}
-                        className="
+                                        <Group gap={4}>
+                                            <Text
+                                                size="11px"
+                                                fw={700}
+                                                className="
                           font-mono
                           text-zinc-100
                           bg-zinc-900
@@ -329,51 +293,51 @@ export default function StyleControllerPanel() {
                           border
                           border-zinc-800
                         "
-                      >
-                        {activeRoom.roomCode}
-                      </Text>
+                                            >
+                                                {activeRoom.roomCode}
+                                            </Text>
 
-                      <Tooltip
-                        label={
-                          copiedCode
-                            ? "Copied!"
-                            : "Copy Code"
-                        }
-                        position="top"
-                        withArrow
-                      >
-                        <ActionIcon
-                          size="xs"
-                          variant="subtle"
-                          color="teal"
-                          onClick={(event) => {
-                            event.stopPropagation();
+                                            <Tooltip
+                                                label={
+                                                    copiedCode
+                                                        ? "Copied!"
+                                                        : "Copy Code"
+                                                }
+                                                position="top"
+                                                withArrow
+                                            >
+                                                <ActionIcon
+                                                    size="xs"
+                                                    variant="subtle"
+                                                    color="teal"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
 
-                            handleCopyText({
-                              text: activeRoom.roomCode,
-                              type: "code",
-                            });
-                          }}
-                        >
-                          <Copy size={10} />
-                        </ActionIcon>
-                      </Tooltip>
-                    </Group>
-                  </Group>
+                                                        handleCopyText({
+                                                            text: activeRoom.roomCode,
+                                                            type: "code",
+                                                        });
+                                                    }}
+                                                >
+                                                    <Copy size={10} />
+                                                </ActionIcon>
+                                            </Tooltip>
+                                        </Group>
+                                    </Group>
 
-                  <Group justify="space-between">
-                    <Text
-                      size="11px"
-                      className="text-zinc-400"
-                    >
-                      Password:
-                    </Text>
+                                    <Group justify="space-between">
+                                        <Text
+                                            size="11px"
+                                            className="text-zinc-400"
+                                        >
+                                            Password:
+                                        </Text>
 
-                    <Group gap={4}>
-                      <Text
-                        size="11px"
-                        fw={700}
-                        className="
+                                        <Group gap={4}>
+                                            <Text
+                                                size="11px"
+                                                fw={700}
+                                                className="
                           font-mono
                           text-zinc-100
                           bg-zinc-900
@@ -384,135 +348,117 @@ export default function StyleControllerPanel() {
                           max-w-27.5
                           truncate
                         "
-                      >
-                        {activeRoom.passwordPlain || (
-                          <span className="italic text-zinc-600 font-sans">
-                            None
-                          </span>
+                                            >
+                                                {activeRoom.passwordPlain || (
+                                                    <span className="italic text-zinc-600 font-sans">
+                                                        None
+                                                    </span>
+                                                )}
+                                            </Text>
+
+                                            {activeRoom.passwordPlain && (
+                                                <Tooltip
+                                                    label={
+                                                        copiedPass
+                                                            ? "Copied!"
+                                                            : "Copy Password"
+                                                    }
+                                                    position="top"
+                                                    withArrow
+                                                >
+                                                    <ActionIcon
+                                                        size="xs"
+                                                        variant="subtle"
+                                                        color="teal"
+                                                        onClick={(event) => {
+                                                            event.stopPropagation();
+
+                                                            handleCopyText({
+                                                                text: activeRoom.passwordPlain!,
+                                                                type: "pass",
+                                                            });
+                                                        }}
+                                                    >
+                                                        <Copy size={10} />
+                                                    </ActionIcon>
+                                                </Tooltip>
+                                            )}
+                                        </Group>
+                                    </Group>
+                                </Stack>
+                            </Box>
                         )}
-                      </Text>
 
-                      {activeRoom.passwordPlain && (
-                        <Tooltip
-                          label={
-                            copiedPass
-                              ? "Copied!"
-                              : "Copy Password"
-                          }
-                          position="top"
-                          withArrow
-                        >
-                          <ActionIcon
-                            size="xs"
-                            variant="subtle"
-                            color="teal"
-                            onClick={(event) => {
-                              event.stopPropagation();
+                        <Box>
+                            <Group justify="space-between" mb={4}>
+                                <Text
+                                    size="11px"
+                                    color="zinc.4"
+                                    className="flex items-center gap-1"
+                                >
+                                    <Maximize2 size={11} />
+                                    Frame Scale
+                                </Text>
 
-                              handleCopyText({
-                                text:
-                                  activeRoom.passwordPlain!,
-                                type: "pass",
-                              });
-                            }}
-                          >
-                            <Copy size={10} />
-                          </ActionIcon>
-                        </Tooltip>
-                      )}
-                    </Group>
-                  </Group>
-                </Stack>
-              </Box>
-            )}
+                                <Text size="11px" color="teal.4" fw={600}>
+                                    {videoSize}px
+                                </Text>
+                            </Group>
 
-            <Box>
-              <Group
-                justify="space-between"
-                mb={4}
-              >
-                <Text
-                  size="11px"
-                  color="zinc.4"
-                  className="flex items-center gap-1"
-                >
-                  <Maximize2 size={11} />
-                  Frame Scale
-                </Text>
+                            <Slider
+                                min={80}
+                                max={240}
+                                step={10}
+                                value={videoSize}
+                                onChange={(val) =>
+                                    dispatch(
+                                        setUiStyles({
+                                            videoSize: val,
+                                        }),
+                                    )
+                                }
+                                color="teal"
+                                size="xs"
+                                label={null}
+                            />
+                        </Box>
 
-                <Text
-                  size="11px"
-                  color="teal.4"
-                  fw={600}
-                >
-                  {videoSize}px
-                </Text>
-              </Group>
+                        <Box>
+                            <Group justify="space-between" mb={4}>
+                                <Text
+                                    size="11px"
+                                    color="zinc.4"
+                                    className="flex items-center gap-1"
+                                >
+                                    <Eye size={11} />
+                                    Alpha Transparency
+                                </Text>
 
-              <Slider
-                min={80}
-                max={240}
-                step={10}
-                value={videoSize}
-                onChange={(val) =>
-                  dispatch(
-                    setUiStyles({
-                      videoSize: val,
-                    }),
-                  )
-                }
-                color="teal"
-                size="xs"
-                label={null}
-              />
-            </Box>
+                                <Text size="11px" color="teal.4" fw={600}>
+                                    {Math.round(videoOpacity * 100)}%
+                                </Text>
+                            </Group>
 
-            <Box>
-              <Group
-                justify="space-between"
-                mb={4}
-              >
-                <Text
-                  size="11px"
-                  color="zinc.4"
-                  className="flex items-center gap-1"
-                >
-                  <Eye size={11} />
-                  Alpha Transparency
-                </Text>
-
-                <Text
-                  size="11px"
-                  color="teal.4"
-                  fw={600}
-                >
-                  {Math.round(
-                    videoOpacity * 100,
-                  )}
-                  %
-                </Text>
-              </Group>
-
-              <Slider
-                min={0.1}
-                max={1.0}
-                step={0.05}
-                value={videoOpacity}
-                onChange={(val) =>
-                  dispatch(
-                    setUiStyles({
-                      videoOpacity: val,
-                    }),
-                  )
-                }
-                color="teal"
-                size="xs"
-                label={null}
-              />
-            </Box>
-          </Stack>
-        </div>
-      </Stack>
-    </Paper>
-  );
+                            <Slider
+                                min={0.1}
+                                max={1.0}
+                                step={0.05}
+                                value={videoOpacity}
+                                onChange={(val) =>
+                                    dispatch(
+                                        setUiStyles({
+                                            videoOpacity: val,
+                                        }),
+                                    )
+                                }
+                                color="teal"
+                                size="xs"
+                                label={null}
+                            />
+                        </Box>
+                    </Stack>
+                </div>
+            </Stack>
+        </Paper>
+    );
 }

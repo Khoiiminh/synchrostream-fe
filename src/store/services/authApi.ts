@@ -1,4 +1,4 @@
-import { createApi, fetchBaseQuery, retry } from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery, retry } from "@reduxjs/toolkit/query/react";
 
 export interface NestResponse<T> {
     success: boolean;
@@ -27,19 +27,19 @@ export interface LoginRequest {
 }
 
 export interface UserProfileResponseData {
-  id: string;
-  username: string;
-  email: string;
-  role: string;
+    id: string;
+    username: string;
+    email: string;
+    role: string;
 }
 
 const authBaseQuery = fetchBaseQuery({
-    baseUrl: '/v1/auth',
+    baseUrl: "/v1/auth",
     prepareHeaders: (headers) => {
-        const token = localStorage.getItem('access_token');
+        const token = localStorage.getItem("access_token");
 
         if (token) {
-            headers.set('authorization', `Bearer ${token}`);
+            headers.set("authorization", `Bearer ${token}`);
         }
 
         return headers;
@@ -51,84 +51,92 @@ const authBaseQuery = fetchBaseQuery({
 const resilientAuthBaseQuery = retry(authBaseQuery, {
     retryCondition: (error, _args, { attempt }) => {
         const status =
-            typeof error === 'object' && error !== null && 'status' in error
+            typeof error === "object" && error !== null && "status" in error
                 ? (error as { status?: unknown }).status
                 : undefined;
         return (
-            attempt < 2 && (
-                status === 'FETCH_ERROR' ||
-                status === 'TIMEOUT_ERROR' ||
-                (typeof status === 'number' && status >= 500)
-            )
+            attempt < 2 &&
+            (status === "FETCH_ERROR" ||
+                status === "TIMEOUT_ERROR" ||
+                (typeof status === "number" && status >= 500))
         );
     },
 });
 
 // initializes the API configuration
 export const authApi = createApi({
-
     // The unique name for where this data lives in the Redux Store
     // Where to store the cached data and request status (loading, error, etc.) within the global state tree
-    reducerPath: 'authApi',
+    reducerPath: "authApi",
 
-    // The root URL configuration. 
-    // All endpoints start with '/v1/auth' - Instead of typing `http://api.com/v1/auth` for 
+    // The root URL configuration.
+    // All endpoints start with '/v1/auth' - Instead of typing `http://api.com/v1/auth` for
     // every single request, we define the base here
     baseQuery: resilientAuthBaseQuery,
 
     // function defines the actual HTTP operations
     // `builder` is an object, used to construct queries (for GET) or mutations (for POST/PUT/DELETE)
     endpoints: (builder) => ({
-
         // MUTATION is used when data is being changed on the server
-        // <Result, Argument> 
-        registerUser: builder.mutation<NestResponse<RegisterResponseData>, RegisterRequest>({
-
-            // The specific instructions for this request 
-            // It takes the `credentials` (username, email, password) and 
+        // <Result, Argument>
+        registerUser: builder.mutation<
+            NestResponse<RegisterResponseData>,
+            RegisterRequest
+        >({
+            // The specific instructions for this request
+            // It takes the `credentials` (username, email, password) and
             // maps them to a POST request to `v1/auth/register`
             query: (credentials) => ({
-                url: '/register',
-                method: 'POST',
+                url: "/register",
+                method: "POST",
                 body: credentials,
             }),
         }),
 
-        loginUser: builder.mutation<NestResponse<LoginResponseData>, LoginRequest>({
+        loginUser: builder.mutation<
+            NestResponse<LoginResponseData>,
+            LoginRequest
+        >({
             query: (credentials) => ({
-                url: '/login',
-                method: 'POST',
+                url: "/login",
+                method: "POST",
                 body: credentials,
             }),
         }),
 
         getMe: builder.query<NestResponse<UserProfileResponseData>, void>({
             query: () => ({
-                url: '/me',
-                method: 'GET'
+                url: "/me",
+                method: "GET",
             }),
         }),
 
         logout: builder.mutation<{ message: string }, void>({
             query: () => ({
-                url: 'logout',
-                method: 'POST',
+                url: "logout",
+                method: "POST",
             }),
         }),
 
-        requestPasswordReset: builder.mutation<{ success: boolean, message: string }, { email: string }>({
+        requestPasswordReset: builder.mutation<
+            { success: boolean; message: string },
+            { email: string }
+        >({
             query: (body) => ({
-                url: '/password-reset/request',
-                method: 'POST',
+                url: "/password-reset/request",
+                method: "POST",
                 body,
             }),
         }),
 
-        confirmPasswordReset: builder.mutation<{ success: boolean, message: string }, { token: string, newPassword: string}> ({
+        confirmPasswordReset: builder.mutation<
+            { success: boolean; message: string },
+            { token: string; newPassword: string }
+        >({
             query: (body) => ({
-                url: '/password-reset/confirm',
-                method: 'POST',
-                body
+                url: "/password-reset/confirm",
+                method: "POST",
+                body,
             }),
         }),
     }),
@@ -142,12 +150,12 @@ export const authApi = createApi({
 
 // Calling the function:
 // const response = await login({ email: '...', password: '...' }).unwrap();
-export const { 
-    useRegisterUserMutation, 
-    useLoginUserMutation, 
-    useGetMeQuery, 
-    useLazyGetMeQuery, 
+export const {
+    useRegisterUserMutation,
+    useLoginUserMutation,
+    useGetMeQuery,
+    useLazyGetMeQuery,
     useLogoutMutation,
     useRequestPasswordResetMutation,
-    useConfirmPasswordResetMutation, 
+    useConfirmPasswordResetMutation,
 } = authApi;

@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "analyze:sync": "tsx scripts/analyze-sync-metrics.ts"
+    "analyze:sync": "tsx scripts/analyze-sync-metrics.ts",
+    "analyze:run": "tsx scripts/analyze-sync-run.ts",
+    "test:sync-sim": "tsx scripts/sim-coordinator.ts",
+    "format": "prettier --write \"{src,scripts}/**/*.{ts,tsx,css}\" \"*.{ts,mjs}\"",
+    "format:check": "prettier --check \"{src,scripts}/**/*.{ts,tsx,css}\" \"*.{ts,mjs}\""
   },
   "dependencies": {
     "@mantine/carousel": "^9.2.1",
@@ -51,6 +55,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^16.3.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "prettier": "^3.8.3",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3"
