@@ -6,6 +6,7 @@ import {
   removeMember,
   setRoomError,
   clearRoomSession,
+  RoomErrorDetail,
   RoomSnapshotPayload,
 } from "@/store/slices/roomSlice";
 
@@ -17,7 +18,21 @@ interface JoinRoomDto {
 interface ConnectionHandshakePayload {
   dto: JoinRoomDto;
   userId: string;
+  /**
+   * The user confirmed "leave my current room and join this one". The server
+   * acts on it only when the current membership is the sole obstacle.
+   */
+  leaveCurrent?: boolean;
 }
+
+interface LeaveRoomAck {
+  ok: boolean;
+  status?: string;
+  message?: string;
+}
+
+/** How long a voluntary leave waits for the socket ack before using REST. */
+const LEAVE_ACK_TIMEOUT_MS = 3000;
 
 interface SyncPulseBroadcastPayload {
   action: "PLAY" | "PAUSE" | "SEEK";
@@ -32,7 +47,18 @@ interface TelemetryPongPayload {
 
 interface RoomErrorPayload {
   message: string;
+  /** Set by the gateway: true for infrastructure failures worth retrying. */
+  retryable?: boolean;
+  /** Structured conflict code, e.g. ACTIVE_MEMBERSHIP_ELSEWHERE. */
+  code?: string;
+  currentRoomCode?: string;
+  currentRoomIsOwned?: boolean;
 }
+
+/** Retries after a retryable server-side disconnect (ms). The first retry must land
+ * well inside the backend's 10 s reconnection grace, or an owner's room terminates.
+ * The ~32 s total also covers a room that is still PROVISIONING after creation. */
+const SERVER_DISCONNECT_RETRY_DELAYS_MS = [1000, 2000, 4000, 5000, 5000, 5000, 5000, 5000];
 
 interface ChatMessagePayload {
   userId: string;
@@ -49,11 +75,14 @@ interface GatewayEventMap {
   "room:telemetry:pong": TelemetryPongPayload;
   "room:chat:broadcast": ChatMessagePayload;
   "room:terminated": { message: string };
+  /** This user left the room from another tab/window (voluntary leave). */
+  "room:left": { message: string };
 }
 
 interface GatewayClientEventMap {
   "room:connect": {
     dto: JoinRoomDto;
+    leaveCurrent?: boolean;
   };
   "room:sync:pulse": {
     roomId: string;
@@ -78,27 +107,80 @@ type GatewayServerEvents = {
 
 type GatewayClientEvents = {
   [K in keyof GatewayClientEventMap]: (data: GatewayClientEventMap[K]) => void;
+} & {
+  "room:leave": (data: Record<string, never>, ack: (response: LeaveRoomAck) => void) => void;
 };
 
 export class WatchPartyGatewayEngine {
   private socket: Socket<GatewayServerEvents, GatewayClientEvents> | null = null;
   private telemetryIntervalId: NodeJS.Timeout | null = null;
   private currentUserId: string | null = null;
+  private disconnectTimeoutId: NodeJS.Timeout | null = null;
+
+  // Server-disconnect recovery state.
+  private lastConnectPayload: ConnectionHandshakePayload | null = null;
+  private lastRoomErrorRetryable: boolean | null = null;
+  private lastRoomErrorMessage: string | null = null;
+  private lastRoomErrorDetail: RoomErrorDetail | null = null;
+  private roomTerminated = false;
+  private currentRoomId: string | null = null;
+  private retryAttempts = 0;
+  private retryTimeoutId: NodeJS.Timeout | null = null;
+
+  // Listeners registered through on(). Kept here so they survive socket
+  // replacement after a server-side disconnect.
+  private readonly externalListeners = new Map<
+    keyof GatewayEventMap,
+    Set<(data: never) => void>
+  >();
 
   constructor(private readonly store: Store) {}
 
   public connect(payload: ConnectionHandshakePayload): void {
-    if (this.socket?.connected) return;
+    /**
+     * A React effect may be replayed by Strict Mode.
+     * If cleanup scheduled a disconnect, cancel it because the effect has 
+     * immediately establish a new lifecycle.
+     */
+    if (this.disconnectTimeoutId) {
+      clearTimeout(this.disconnectTimeoutId);
+      this.disconnectTimeoutId = null;
+    }
 
-    const token =
-      typeof window !== "undefined"
+    /**
+     * Do not create another socket if one already exists,
+     * including a socket that is still CONNECTING.
+     */
+    if (this.socket) {
+      console.log(
+        "[WatchPartyGatewayEngine] Connection already exists",
+        {
+          connected: this.socket.connected,
+          socketId: this.socket.id,
+        },
+      );
+
+      return;
+    }
+
+    this.lastConnectPayload = payload;
+    this.roomTerminated = false;
+    this.retryAttempts = 0;
+
+    this.openSocket(payload);
+  }
+
+  private openSocket(payload: ConnectionHandshakePayload): void {
+    const token = typeof window !== "undefined"
         ? localStorage.getItem("access_token")
         : null;
     const { roomCode, passwordPlain } = payload.dto;
     this.currentUserId = payload.userId;
+    this.lastRoomErrorRetryable = null;
+    this.lastRoomErrorMessage = null;
+    this.lastRoomErrorDetail = null;
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:7000";
+    const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:7000";
 
     // Matches backend: namspace: 'sync-hub' (incorporating the backend parameter typo safely)
     this.socket = io(`${baseUrl}/sync-hub`, {
@@ -114,11 +196,15 @@ export class WatchPartyGatewayEngine {
 
     // On open wire execution, immediately authorize and join the room channel
     this.socket.on("connect", () => {
+      // Read the flag at emit time: it is cleared after the first successful
+      // join, so an automatic reconnect never repeats a room switch.
+      const leaveCurrent = (this.lastConnectPayload ?? payload).leaveCurrent === true;
       this.socket?.emit("room:connect", {
         dto: {
           roomCode: roomCode.trim().toUpperCase(),
           passwordPlain: passwordPlain,
         },
+        leaveCurrent,
       });
     });
   }
@@ -142,6 +228,22 @@ export class WatchPartyGatewayEngine {
     // Emits the incoming payload straight through the custom proxy event listener pipeline
     this.socket.on("room:chat:broadcast", this.handleChatBroadcast);
 
+    this.socket.on("room:terminated", this.handleRoomTerminated);
+
+    // Left from another tab: like termination, never auto-rejoin.
+    this.socket.on("room:left", this.handleRoomTerminated);
+
+    // Re-attach listeners registered through on() to this (possibly new) socket.
+    for (const [event, callbacks] of this.externalListeners) {
+      for (const callback of callbacks) {
+        this.socket.on(event, callback as never);
+      }
+    }
+  }
+
+  private handleRoomTerminated = (): void => {
+    // A terminated room must never be rejoined automatically.
+    this.roomTerminated = true;
   }
 
   private handleRoomStateUpdate = (snapshot: RoomSnapshotPayload): void => {
@@ -153,6 +255,13 @@ export class WatchPartyGatewayEngine {
           memberCount: snapshot.members.length,
       });
       this.store.dispatch(syncRoomState(snapshot));
+      this.currentRoomId = snapshot.roomId;
+      // A successful handshake ends any server-disconnect retry sequence and
+      // consumes a confirmed room switch.
+      this.retryAttempts = 0;
+      if (this.lastConnectPayload?.leaveCurrent) {
+        this.lastConnectPayload = { ...this.lastConnectPayload, leaveCurrent: false };
+      }
       this.startTelemetryHeartbeat(
         snapshot.roomId,
         this.currentUserId ?? "",
@@ -183,12 +292,74 @@ export class WatchPartyGatewayEngine {
   }
 
   private handleRoomError = (data: RoomErrorPayload) => {
-    this.store.dispatch(setRoomError({ message: data.message }));
+    if (typeof data.retryable === "boolean") {
+      this.lastRoomErrorRetryable = data.retryable;
+    }
+    this.lastRoomErrorMessage = data.message;
+    this.lastRoomErrorDetail = data.code
+      ? {
+          code: data.code,
+          currentRoomCode: data.currentRoomCode,
+          currentRoomIsOwned: data.currentRoomIsOwned,
+        }
+      : null;
+    this.store.dispatch(setRoomError({ message: data.message, detail: this.lastRoomErrorDetail }));
   }
 
-  private handleDisconnect = () => {
+  private handleDisconnect = (reason: Socket.DisconnectReason) => {
     this.stopTelemetryHeartbeat();
+
+    // Transport-level drops are retried by socket.io itself, and its "connect"
+    // handler re-sends room:connect. Keep the room context meanwhile, so the
+    // LiveKit connection (keyed on activeRoom.mediaSessionId) is not torn down
+    // by a network blip; the next room:state_update replaces it.
+    if (reason !== "io server disconnect") {
+      if (reason === "io client disconnect") {
+        this.store.dispatch(clearRoomSession());
+      }
+      return;
+    }
+
+    // A server-initiated disconnect is final for that socket object, so
+    // connect() would otherwise early-return forever.
     this.store.dispatch(clearRoomSession());
+    // clearRoomSession resets errorMessage; keep the reason the server gave.
+    if (this.lastRoomErrorMessage) {
+      this.store.dispatch(setRoomError({
+        message: this.lastRoomErrorMessage,
+        detail: this.lastRoomErrorDetail,
+      }));
+    }
+
+    const deadSocket = this.socket;
+    this.socket = null;
+    deadSocket?.removeAllListeners();
+
+    const payload = this.lastConnectPayload;
+    const delayMs = SERVER_DISCONNECT_RETRY_DELAYS_MS[this.retryAttempts];
+    const shouldRetry =
+      !!payload &&
+      !this.roomTerminated &&
+      this.lastRoomErrorRetryable === true &&
+      delayMs !== undefined;
+
+    if (!shouldRetry) {
+      // Non-retryable rejection, room termination, or replacement by another
+      // tab. Leave the socket null so a later connect() can start fresh.
+      return;
+    }
+
+    this.retryAttempts += 1;
+    console.warn("[WatchPartyGatewayEngine] Retrying room handshake after server disconnect", {
+      attempt: this.retryAttempts,
+      delayMs,
+    });
+
+    this.retryTimeoutId = setTimeout(() => {
+      this.retryTimeoutId = null;
+      if (this.socket || this.lastConnectPayload !== payload) return;
+      this.openSocket(payload);
+    }, delayMs);
   }
 
   private handleTelemetryPong = (data: TelemetryPongPayload): void => {
@@ -269,13 +440,114 @@ export class WatchPartyGatewayEngine {
       ) => void
     >();
 
-  public disconnect(): void {
-    this.stopTelemetryHeartbeat();
+  /**
+   * Voluntary leave. Unlike disconnect() (connection-loss semantics, which the
+   * server answers with a 10 s reconnection grace), this asks the server to
+   * clean up immediately and resolves only after it has committed, so the
+   * caller can create or join another room right away.
+   *
+   * Order: socket `room:leave` with ack → REST fallback → local teardown.
+   * If both fail, nothing is stranded: the server's grace/presence path still
+   * cleans up within seconds.
+   */
+  public async leaveRoom(): Promise<{ ok: boolean }> {
+    const socket = this.socket;
+    const roomId = this.currentRoomId;
 
+    // Never auto-reconnect into the room we are leaving.
+    this.lastConnectPayload = null;
+    this.roomTerminated = true;
+    if (this.retryTimeoutId) {
+      clearTimeout(this.retryTimeoutId);
+      this.retryTimeoutId = null;
+    }
+
+    let acknowledged = false;
+    if (socket?.connected) {
+      try {
+        const response = await socket
+          .timeout(LEAVE_ACK_TIMEOUT_MS)
+          .emitWithAck("room:leave", {});
+        acknowledged = response?.ok === true;
+      } catch (error) {
+        console.warn("[WatchPartyGatewayEngine] room:leave ack failed; using REST fallback", error);
+      }
+    }
+
+    if (!acknowledged && roomId) {
+      acknowledged = await this.leaveRoomOverRest(roomId);
+    }
+
+    // Tear down now (not deferred): this is a deliberate end of the session.
+    this.stopTelemetryHeartbeat();
+    if (this.disconnectTimeoutId) {
+      clearTimeout(this.disconnectTimeoutId);
+      this.disconnectTimeoutId = null;
+    }
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
     }
+    this.currentUserId = null;
+    this.currentRoomId = null;
+    this.store.dispatch(clearRoomSession());
+
+    return { ok: acknowledged };
+  }
+
+  private async leaveRoomOverRest(roomId: string): Promise<boolean> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+    const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:7000";
+    try {
+      const response = await fetch(`${baseUrl}/v1/watch-party/rooms/${roomId}/leave`, {
+        method: "POST",
+        headers: token ? { authorization: `Bearer ${token}` } : {},
+        // Survives an immediately following navigation.
+        keepalive: true,
+      });
+      return response.ok;
+    } catch (error) {
+      console.warn("[WatchPartyGatewayEngine] REST leave failed; the server grace path will clean up", error);
+      return false;
+    }
+  }
+
+  public disconnect(): void {
+    this.stopTelemetryHeartbeat();
+
+    if (this.retryTimeoutId) {
+      clearTimeout(this.retryTimeoutId);
+      this.retryTimeoutId = null;
+    }
+
+    // Avoid scheduling multiple disconnects.
+    if (this.disconnectTimeoutId) return;
+
+    /**
+     * Delay the actual socket destruction by one event-loop turn.
+     * 
+     * Because React Strict Mode can do:
+     *    effect -> cleanup -> effect
+     * 
+     * immediately during development.
+     * 
+     * The second connect() gets a chance to cancel this disconnect.
+     */
+    this.disconnectTimeoutId = setTimeout(() => {
+      this.disconnectTimeoutId = null;
+      this.lastConnectPayload = null;
+
+      if (this.retryTimeoutId) {
+        clearTimeout(this.retryTimeoutId);
+        this.retryTimeoutId = null;
+      }
+
+      if (!this.socket) return;
+
+      this.socket.disconnect();
+      this.socket = null;
+      this.currentUserId = null;
+    }, 0)
   }
 
   /**
@@ -297,14 +569,19 @@ export class WatchPartyGatewayEngine {
       callback: (data: GatewayEventMap[K]) => void;
     }
   ): () => void {
-    if (!this.socket) {
-      return () => {};
+    const callback = p.callback as (data: never) => void;
+    let callbacks = this.externalListeners.get(p.event);
+    if (!callbacks) {
+      callbacks = new Set();
+      this.externalListeners.set(p.event, callbacks);
     }
+    callbacks.add(callback);
 
-    this.socket.on(p.event, p.callback as never);
+    this.socket?.on(p.event, callback as never);
 
     return () => {
-      this.socket?.off(p.event, p.callback as never);
+      this.externalListeners.get(p.event)?.delete(callback);
+      this.socket?.off(p.event, callback as never);
     };
   }
 }

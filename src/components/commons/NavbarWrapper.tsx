@@ -6,6 +6,7 @@ import { Group, Text, Container, Button, Stack, TextInput, Modal } from '@mantin
 import ProfileMenuClientLeaf from './ProfileMenuClientLeaf';
 import { useRouter } from 'next/navigation';
 import { LogIn, Users } from 'lucide-react';
+import { guardedNavigate } from '@/core/navigation/leaveGuard';
 
 interface NavbarWrapperProps {
   children: React.ReactNode;
@@ -26,7 +27,8 @@ export default function NavbarWrapper({ children }: NavbarWrapperProps) {
       return;
     }
 
-    router.push(`/party/${cleanCode}?pwd=${encodeURIComponent(cleanPassword)}`);
+    // From inside a party this is a room switch: leave the current room first.
+    guardedNavigate(router, `/party/${cleanCode}?pwd=${encodeURIComponent(cleanPassword)}`);
 
     setTargetRoomCode('');
     setTargetPassword('');

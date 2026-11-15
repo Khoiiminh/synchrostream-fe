@@ -8,6 +8,7 @@ import { LoadingPage } from './LoadingPage';
 import { createPortal } from 'react-dom';
 import { useAppDispatch } from '@/store/hooks';
 import { clearCredentials } from '@/store/slices/authSlice';
+import { guardedNavigate } from '@/core/navigation/leaveGuard';
 
 export default function ProfileMenuClientLeaf() {
     const router = useRouter();
@@ -82,11 +83,11 @@ export default function ProfileMenuClientLeaf() {
 
         <Menu.Divider className="border-zinc-800" />
 
-        <Menu.Item onClick={() => router.push('/dashboard/user')} className="hover:bg-zinc-800 text-zinc-200">
+        <Menu.Item onClick={() => guardedNavigate(router, '/dashboard/user')} className="hover:bg-zinc-800 text-zinc-200">
           User Dashboard
         </Menu.Item>
-        
-        <Menu.Item onClick={() => router.push('/catalog')} className="hover:bg-zinc-800 text-zinc-200">
+
+        <Menu.Item onClick={() => guardedNavigate(router, '/catalog')} className="hover:bg-zinc-800 text-zinc-200">
           Film Catalog
         </Menu.Item>
 

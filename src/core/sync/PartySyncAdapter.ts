@@ -3,9 +3,11 @@ import { SyncEngine } from "../services/SyncEngine";
 import { WatchPartyGatewayEngine } from "../services/WatchPartyGatewayEngine";
 import { ISyncAdapter, QualityLevel } from "./ISyncAdapter";
 import { PlaybackCoordinator } from "./PlaybackCoordinator";
+import { SyncMetrics } from "./SyncMetrics";
 
 export class PartySyncAdapter implements ISyncAdapter {
     private coordinator: PlaybackCoordinator | null = null;
+    private readonly metrics: SyncMetrics;
     
     constructor(
         private readonly localEngine: SyncEngine,
@@ -17,6 +19,8 @@ export class PartySyncAdapter implements ISyncAdapter {
         private readonly ownerId: string,
         private readonly remotePlaybackGuard: RemotePlaybackGuard,
     ) {
+        this.metrics = new SyncMetrics();
+
         console.log("[PartySyncAdapter] Created", {
             userId: this.userId,
             ownerId: this.ownerId,
@@ -30,6 +34,7 @@ export class PartySyncAdapter implements ISyncAdapter {
             this.gateway,
             this.userId,
             this.remotePlaybackGuard,
+            this.metrics,
         );
     }
 
@@ -83,14 +88,19 @@ export class PartySyncAdapter implements ISyncAdapter {
             playhead,
         });
 
-        await this.localEngine.play();
+        // Initiate local playback without waiting for the promise to settle 
+        const playPromise = this.localEngine.play();
 
+        // Broadcast immediately to preserve command-issuance order
         this.gateway.emitPlaybackPulse({
             roomId: this.roomId,
             roomCode: this.roomCode,
             action: "PLAY",
-            playhead: this.localEngine.getCurrentTime()
+            playhead: playhead
         });
+
+        //Preserve the existing async method behavior for callers
+        await playPromise;
     }
 
     async pause(): Promise<void> {
@@ -123,14 +133,16 @@ export class PartySyncAdapter implements ISyncAdapter {
             playhead,
         });
 
-        await this.localEngine.pause();
+        const pausePromise = this.localEngine.pause();
 
         this.gateway.emitPlaybackPulse({
             roomId: this.roomId,
             roomCode: this.roomCode,
             action: "PAUSE",
-            playhead:  this.localEngine.getCurrentTime()
+            playhead:  playhead
         });
+
+        await pausePromise;
     }
 
     seek(seconds: number): void {
@@ -179,6 +191,10 @@ export class PartySyncAdapter implements ISyncAdapter {
         }
 
         this.localEngine.dispose();
+    }
+
+    public getSyncMetrics(): SyncMetrics {
+        return this.metrics;
     }
 
     getQualityLevels(): QualityLevel[] {

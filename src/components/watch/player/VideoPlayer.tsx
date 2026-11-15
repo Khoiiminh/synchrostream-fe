@@ -10,6 +10,11 @@ import PlayerControls from "./PlayerControls";
 interface VideoPlayerProps {
   controller: MediaSyncController | null;
 
+  onControllerAttachmentChange?: (
+    controller: MediaSyncController,
+    attached: boolean,
+  ) => void;
+
   isPlaying: boolean;
   currentTime: number;
   duration: number;
@@ -23,6 +28,7 @@ interface VideoPlayerProps {
 
 export default function VideoPlayer({
   controller,
+  onControllerAttachmentChange,
   isPlaying,
   currentTime,
   duration,
@@ -86,6 +92,8 @@ export default function VideoPlayer({
 
     controller.attach(videoElement);
 
+    onControllerAttachmentChange?.(controller, true);
+
     const handleDurationChange = () => {
       onDurationChange(videoElement.duration || 0);
     };
@@ -131,6 +139,8 @@ export default function VideoPlayer({
         syncQualityTracks,
       );
 
+      onControllerAttachmentChange?.(controller, false);
+
       controller.detach();
 
       onDurationChange(0);
@@ -139,6 +149,7 @@ export default function VideoPlayer({
   }, [
     videoElement,
     controller,
+    onControllerAttachmentChange,
     onDurationChange,
     onQualityLevelsChange,
   ]);
@@ -175,28 +186,28 @@ export default function VideoPlayer({
     };
   }, []);
 
-  useEffect(() => {
-    if (!videoElement) {
-      return;
-    }
+  // useEffect(() => {
+  //   if (!videoElement) {
+  //     return;
+  //   }
 
-    const logAudioState = () => {
-      console.log("[AUDIO DEBUG]", {
-        videoVolume: videoElement.volume,
-        muted: videoElement.muted,
-      });
-    };
+  //   const logAudioState = () => {
+  //     console.log("[AUDIO DEBUG]", {
+  //       videoVolume: videoElement.volume,
+  //       muted: videoElement.muted,
+  //     });
+  //   };
 
-    logAudioState();
+  //   logAudioState();
 
-    const interval = window.setInterval(() => {
-      logAudioState();
-    }, 1000);
+  //   const interval = window.setInterval(() => {
+  //     logAudioState();
+  //   }, 1000);
 
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [videoElement]);
+  //   return () => {
+  //     window.clearInterval(interval);
+  //   };
+  // }, [videoElement]);
 
   const handleMouseMove = () => {
     setShowControls(true);

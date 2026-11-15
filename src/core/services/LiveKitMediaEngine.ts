@@ -1,5 +1,12 @@
 import { ParticipantMedia } from "../types/ParticipantMedia.type";
-import { LocalTrack, RemoteTrack, Room, RoomEvent, Track } from "livekit-client";
+import {
+    AudioCaptureOptions,
+    LocalTrack,
+    RemoteTrack,
+    Room,
+    RoomEvent,
+    Track,
+} from "livekit-client";
 
 export type LiveKitMediaEngineStatus = 
     | "DISCONNECTED"
@@ -24,6 +31,27 @@ type StatusListener = (
 
 type LocalStreamListener = (stream: MediaStream | null) => void;
 
+type MicrophoneListener = (active: boolean, error?: Error) => void;
+
+const MICROPHONE_CAPTURE_OPTIONS: AudioCaptureOptions = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: false,
+};
+
+/*
+ * Push-to-talk microphone policy.
+ *
+ * On Windows, while a browser tab holds the microphone open, the audio stack
+ * switches into a "call" mode that lowers everything that tab plays, the
+ * movie included. OS ducking settings do not prevent it. The only reliable
+ * fix in a browser is to not hold the microphone: it is opened while the user
+ * is talking and its MediaStreamTrack is stopped (device released) as soon as
+ * they stop. stopMicTrackOnMute makes LiveKit stop the track on mute and
+ * reacquire it on unmute while keeping the same publication, so remote
+ * participants do not resubscribe on every press.
+ */
+
 interface ParticipantTrackRecord {
     participantId: string;
     trackSid: string;
@@ -42,6 +70,11 @@ export class LiveKitMediaEngine {
     private readonly localStreamListeners = new Set<LocalStreamListener>();
     private isCleaningUp = false;
     private isProducingLocalMedia = false;
+    private readonly microphoneListeners = new Set<MicrophoneListener>();
+    private desiredMicrophoneActive = false;
+    private appliedMicrophoneActive = false;
+    // Serializes mic transitions so rapid press/release never overlap.
+    private microphoneSync: Promise<void> = Promise.resolve();
 
     public getLocalParticipantId(): string | null {
         return this.config?.participantId ?? null;
@@ -99,6 +132,77 @@ export class LiveKitMediaEngine {
         return () => {
             this.localStreamListeners.delete(listener);
         };
+    }
+
+    public isMicrophoneActive(): boolean {
+        return this.appliedMicrophoneActive;
+    }
+
+    public onMicrophoneUpdate(listener: MicrophoneListener): () => void {
+        this.microphoneListeners.add(listener);
+
+        listener(this.appliedMicrophoneActive);
+
+        return () => {
+            this.microphoneListeners.delete(listener);
+        };
+    }
+
+    /**
+     * Open (true) or fully release (false) the microphone. Calls are
+     * coalesced: only the latest requested state is applied.
+     */
+    public setMicrophoneActive(active: boolean): Promise<void> {
+        this.desiredMicrophoneActive = active;
+
+        this.microphoneSync = this.microphoneSync.then(() =>
+            this.syncMicrophone(),
+        );
+
+        return this.microphoneSync;
+    }
+
+    private async syncMicrophone(): Promise<void> {
+        while (
+            this.room &&
+            this.room.state === "connected" &&
+            !this.isCleaningUp &&
+            this.appliedMicrophoneActive !== this.desiredMicrophoneActive
+        ) {
+            const target = this.desiredMicrophoneActive;
+
+            try {
+                await this.room.localParticipant.setMicrophoneEnabled(
+                    target,
+                    MICROPHONE_CAPTURE_OPTIONS,
+                    { stopMicTrackOnMute: true },
+                );
+
+                this.appliedMicrophoneActive = target;
+                this.notifyMicrophone();
+            } catch (error) {
+                const normalizedError = error instanceof Error
+                    ? error
+                    : new Error("Failed to change microphone state.");
+
+                console.error(
+                    "[LiveKitMediaEngine] Microphone transition failed",
+                    { target, error: normalizedError },
+                );
+
+                // Do not retry in a loop (e.g. permission denied).
+                this.desiredMicrophoneActive = this.appliedMicrophoneActive;
+                this.notifyMicrophone(normalizedError);
+
+                return;
+            }
+        }
+    }
+
+    private notifyMicrophone(error?: Error): void {
+        for (const listener of this.microphoneListeners) {
+            listener(this.appliedMicrophoneActive, error);
+        }
     }
 
     public getParticipantMedia(): ParticipantMedia[] {
@@ -192,16 +296,29 @@ export class LiveKitMediaEngine {
         this.isProducingLocalMedia = true;
 
         try {
-            const localTracks = await this.room.localParticipant.createTracks(
+            // Ask for microphone permission together with the camera so the
+            // first push-to-talk press is not interrupted by a prompt. The
+            // probe track is stopped immediately; the mic is NOT kept open.
+            const askForMicrophone =
+                (await queryMicrophonePermission()) === "prompt";
+
+            const createdTracks = await this.room.localParticipant.createTracks(
                 {
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: false,
-                    },
+                    audio: askForMicrophone ? MICROPHONE_CAPTURE_OPTIONS : false,
                     video: true,
                 },
             );
+
+            const localTracks: LocalTrack[] = [];
+
+            for (const createdTrack of createdTracks) {
+                if (createdTrack.kind === Track.Kind.Audio) {
+                    createdTrack.stop();
+                    continue;
+                }
+
+                localTracks.push(createdTrack);
+            }
 
             const localStream = new MediaStream();
 
@@ -256,6 +373,7 @@ export class LiveKitMediaEngine {
                 "[LiveKitMediaEngine] Local media published",
                 {
                     participantId: this.config?.participantId,
+                    microphone: "push-to-talk (closed until talking)",
                 },
             );
         } catch (error) {
@@ -649,11 +767,29 @@ export class LiveKitMediaEngine {
 
         this.config = null;
         this.isProducingLocalMedia = false;
+        this.desiredMicrophoneActive = false;
+        this.appliedMicrophoneActive = false;
+        this.microphoneSync = Promise.resolve();
+        this.notifyMicrophone();
 
         this.notifyLocalStreamUpdate();
         this.notifyMediaUpdate();
         this.notifyStatus("DISCONNECTED");
 
         this.isCleaningUp = false;
+    }
+}
+
+async function queryMicrophonePermission(): Promise<PermissionState | "unknown"> {
+    try {
+        const status = await navigator.permissions.query({
+            name: "microphone" as PermissionName,
+        });
+
+        return status.state;
+    } catch {
+        // Permissions API unsupported for "microphone" (e.g. older Firefox):
+        // fall back to prompting on the first push-to-talk press.
+        return "unknown";
     }
 }

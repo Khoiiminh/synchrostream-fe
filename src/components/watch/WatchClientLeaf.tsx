@@ -39,11 +39,17 @@ import VideoPlayer from "./player/VideoPlayer";
 interface WatchClientLeafProps {
   mediaId: string;
   isPartyMode: boolean;
+
+  onControllerAttachmentChange?: (
+    controller: MediaSyncController,
+    attached: boolean,
+  ) => void;
 }
 
 export default function WatchClientLeaf({
   mediaId,
   isPartyMode,
+  onControllerAttachmentChange,
 }: WatchClientLeafProps) {
   const router = useRouter();
   const store = useStore();
@@ -195,6 +201,17 @@ export default function WatchClientLeaf({
     },
     [controller],
   );
+  const handleDownloadSyncMetrics = useCallback(() => {
+      if (!controller) {
+          console.warn(
+              "[WatchClientLeaf] Cannot download sync metrics without a controller.",
+          );
+
+          return;
+      }
+
+      controller.downloadSyncMetrics();
+  }, [controller]);
 
   if (isLoading && !cachedCatalogMovie) {
     return (
@@ -214,60 +231,72 @@ export default function WatchClientLeaf({
     );
   }
 
-  return (
-    <NavbarWrapper>
-      <div className="w-full min-h-[calc(100vh-60px)] flex-1 flex flex-col justify-center relative overflow-hidden">
-        {activePosterUrl && (
-          <div className="absolute inset-0 w-full h-full pointer-events-none select-none z-0 overflow-hidden">
-            <Image
-              src={activePosterUrl}
-              alt="Ambient theatre backdrop"
-              fill
-              sizes="100vw"
-              priority
-              className="object-cover blur-2xl scale-110 opacity-40 select-none pointer-events-none"
-            />
-
-            <div className="absolute inset-0 bg-radial from-transparent via-zinc-950/40 to-zinc-950" />
-          </div>
-        )}
-
-        <div className="w-full max-w-(--size-xl) mx-auto px-4 md:px-6 py-6 flex flex-col justify-center relative z-10">
-          <Button
-            onClick={() => router.push("/catalog")}
-            variant="subtle"
-            color="gray"
-            mb="md"
-            className="self-start relative z-10"
-          >
-            &larr; Back to Catalog
-          </Button>
-
-          <VideoPlayer
-            controller={controller}
-            isPlaying={isPlaying}
-            currentTime={currentTime}
-            duration={duration}
-            qualityLevels={qualityLevels}
-            onSeek={handleSeek}
-            onDurationChange={handleDurationChange}
-            onQualityLevelsChange={
-              handleQualityLevelsChange
-            }
+  // The inner page content
+  const innerContent = (
+    <div
+      className={`w-full flex-1 flex flex-col justify-between relative overflow-hidden ${
+        isPartyMode ? 'h-full' : 'min-h-[calc(100vh-60px)]'
+      }`}
+    >
+      {activePosterUrl && (
+        <div className="absolute inset-0 w-full h-full pointer-events-none select-none z-0 overflow-hidden">
+          <Image
+            src={activePosterUrl}
+            alt="Ambient theatre backdrop"
+            fill
+            sizes="100vw"
+            priority
+            className="object-cover blur-2xl scale-110 opacity-40 select-none pointer-events-none"
           />
+          <div className="absolute inset-0 bg-radial from-transparent via-zinc-950/40 to-zinc-950" />
+        </div>
+      )}
 
-          <div className="w-full pl-16 md:pl-22">
-            <Text
-              size="xl"
-              fw={700}
-              mt="md"
-              className="text-white"
-            >
-              {streamData?.title}
-            </Text>
-          </div>
+      <div className="w-full max-w-(--size-xl) mx-auto px-4 md:px-6 py-4 flex flex-col justify-between relative z-10 h-full">
+        <Button
+          onClick={() => router.push("/catalog")}
+          variant="subtle"
+          color="gray"
+          mb="xs"
+          className="self-start relative z-10"
+        >
+          &larr; Back to Catalog
+        </Button>
+
+        <div className="fixed top-20 right-6 z-100">
+          <Button onClick={handleDownloadSyncMetrics} variant="light">
+            Download Sync Metrics
+          </Button>
+        </div>
+
+        <VideoPlayer
+          controller={controller}
+          onControllerAttachmentChange={
+            onControllerAttachmentChange
+          }
+          isPlaying={isPlaying}
+          currentTime={currentTime}
+          duration={duration}
+          qualityLevels={qualityLevels}
+          onSeek={handleSeek}
+          onDurationChange={handleDurationChange}
+          onQualityLevelsChange={handleQualityLevelsChange}
+        />
+
+        <div className="w-full pl-4 md:pl-8">
+          <Text size="xl" fw={700} mt="xs" className="text-white">
+            {streamData?.title}
+          </Text>
         </div>
       </div>
-    </NavbarWrapper>
+    </div>
   );
+
+  // If in party mode, bypass NavbarWrapper directly to fit into IntegratedWatchPartyPage's container
+  if (isPartyMode) {
+    return innerContent;
+  }
+
+  // Solo viewing mode retains NavbarWrapper
+  return <NavbarWrapper>{innerContent}</NavbarWrapper>;
 }

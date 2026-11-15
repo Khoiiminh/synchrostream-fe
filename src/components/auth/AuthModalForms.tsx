@@ -11,9 +11,10 @@ import { useRouter } from "next/navigation";
 
 interface AuthModalFormProps {
     onSuccess: () => void;
+    redirectTo?: string;
 }
 
-export function AuthModalForms({ onSuccess }: AuthModalFormProps) {
+export function AuthModalForms({ onSuccess, redirectTo }: AuthModalFormProps) {
     const [activeTab, setActiveTab] = useState<string | null>('login');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -78,7 +79,9 @@ export function AuthModalForms({ onSuccess }: AuthModalFormProps) {
                 onSuccess();
 
                 // Safe Next.js transition wrapper pushing to /dashboard/user or /dashboard/admin
-                if (userRole === 'admin') {
+                if (redirectTo?.startsWith('/') && !redirectTo.startsWith('//')) {
+                    router.push(redirectTo);
+                } else if (userRole === 'admin') {
                     router.push('/dashboard/admin');
                 } else {
                     router.push('/catalog');

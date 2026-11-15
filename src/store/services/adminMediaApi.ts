@@ -1,4 +1,5 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
+import { createAuthenticatedBaseQuery } from './authenticatedBaseQuery';
 
 export interface NestResponse<T> {
     success: boolean;
@@ -9,16 +10,7 @@ export interface NestResponse<T> {
 
 export const adminMediaApi = createApi({
     reducerPath: 'adminMediaApi',
-    baseQuery: fetchBaseQuery({
-        baseUrl: '/v1/admin/media', // Aligned to admin.controller.ts endpoints
-        prepareHeaders: (headers) => {
-            const token = localStorage.getItem('access_token');
-            if (token) {
-                headers.set('authorization', `Bearer ${token}`);
-            }
-            return headers;
-        }
-    }),
+    baseQuery: createAuthenticatedBaseQuery('/v1/admin/media'),
     endpoints: (builder) => ({
         initiateUpload: builder.mutation<NestResponse<{ movieId: string; uploadId: string; objectKey: string }>, { title: string; genre: string; description: string }>({
             query: (body) => ({

@@ -1,4 +1,5 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
+import { createAuthenticatedBaseQuery } from './authenticatedBaseQuery';
 
 export interface RtcTokenResponse {
   livekitUrl: string;
@@ -6,32 +7,28 @@ export interface RtcTokenResponse {
 }
 
 export interface CreateRoomArgs {
-  roomCode: string;
+  /** Omit to let the server generate a unique code (recommended). */
+  roomCode?: string;
   passwordPlain: string;
   movieId: string;
   maxParticipants?: number;
+  /** Leave (closing it if owned) the room the caller is still in, then create. Send only after the user confirms. */
+  leaveCurrent?: boolean;
 }
 
 export interface CreateRoomResponse {
   roomId: string;
   roomCode: string;
   maxParticipants?: number;
+  /** PROVISIONING when the room is committed but not yet ready; joining retries until ACTIVE. */
+  lifecycleStatus?: 'PROVISIONING' | 'ACTIVE';
 }
 
 export const watchPartyApi = createApi({
 
   reducerPath: 'watchPartyApi',
 
-  baseQuery: fetchBaseQuery({
-    baseUrl: '/v1/watch-party',
-    prepareHeaders: (headers) => {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-      if (token) {
-        headers.set('authorization', `Bearer ${token}`);
-      }
-      return headers;
-    }
-  }),
+  baseQuery: createAuthenticatedBaseQuery('/v1/watch-party'),
 
   endpoints: (builder) => ({
     /** -------------------------------------------
@@ -53,7 +50,9 @@ export const watchPartyApi = createApi({
         url: '/rooms',
         method: 'POST',
         body,
-      })
+      }),
+      // The backend TransformationInterceptor wraps results as { success, message, data }.
+      transformResponse: (response: { data: CreateRoomResponse }) => response.data,
     }),
   }),
 });

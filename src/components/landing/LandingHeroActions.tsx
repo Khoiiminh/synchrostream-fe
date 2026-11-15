@@ -1,14 +1,25 @@
 'use client';
 
 import { useDisclosure } from '@mantine/hooks';
-import { Modal, Button, Group, Text, Loader } from '@mantine/core';
+import { Modal, Button, Group, Text, Loader, Alert } from '@mantine/core';
 import { AuthModalForms } from '@/components/auth/AuthModalForms';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLazyGetMeQuery } from '@/store/services/authApi';
+import { useEffect } from 'react';
 
 export function LandingHeroActions() {
   const [opened, { open, close }] = useDisclosure(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const reason = searchParams.get('reason');
+  const next = searchParams.get('next');
+  const redirectTo = next?.startsWith('/') && !next.startsWith('//') ? next : undefined;
+
+  useEffect(() => {
+    if (reason === 'session-expired' || reason === 'sign-in-required') {
+      open();
+    }
+  }, [open, reason]);
 
   // Lazy query: only checked when the user actually clicks, not on mount.
   const [triggerGetMe, { isFetching }] = useLazyGetMeQuery();
@@ -82,7 +93,17 @@ export function LandingHeroActions() {
           title: { fontWeight: 600 },
         }}
       >
-        <AuthModalForms onSuccess={close} />
+        {reason === 'session-expired' && (
+          <Alert color="yellow" mb="md" title="Session expired">
+            Please sign in again to continue.
+          </Alert>
+        )}
+        {reason === 'sign-in-required' && (
+          <Alert color="blue" mb="md" title="Sign-in required">
+            Sign in to continue to that page.
+          </Alert>
+        )}
+        <AuthModalForms onSuccess={close} redirectTo={redirectTo} />
       </Modal>
     </>
   );
