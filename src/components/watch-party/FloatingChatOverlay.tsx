@@ -16,17 +16,11 @@ import { Send, MessageSquare, ChevronUp, ChevronDown } from "lucide-react";
 
 import { useParams } from "next/navigation";
 import { watchPartyGatewayEngine } from "@/store";
+import type { ChatMessageBroadcastPayload } from "@/types/watchParty";
 
 interface FloatingMessage {
     username: string;
     text: string;
-}
-
-interface ChatMessageBroadcastPayload {
-    userId: string;
-    username: string;
-    message: string;
-    timestamp: number;
 }
 
 interface PanelPosition {

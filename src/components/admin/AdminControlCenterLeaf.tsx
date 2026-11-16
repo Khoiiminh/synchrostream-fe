@@ -52,18 +52,12 @@ import { LoadingPage } from "../commons/LoadingPage";
 import { createPortal } from "react-dom";
 import { clearCredentials } from "@/store/slices/authSlice";
 import { createLogger } from "@/core/logging/logger";
+import type {
+    CloudTranscodeStatus,
+    MovieStatusChangedPayload,
+} from "@/types/media";
 
 const log = createLogger("AdminControlCenter");
-
-// Strict Type Enumeration matching backend states
-type CloudTranscodeStatus = "IDLE" | "PROCESSING" | "AVAILABLE" | "FAILED";
-
-// Explicit Interface for incoming Telemetry Payload
-interface MovieStatusChangedPayload {
-    movieId: string;
-    status: Exclude<CloudTranscodeStatus, "IDLE">;
-    hlsUrl?: string;
-}
 
 // Expected response layout from processIngestionPipeline
 export function AdminControlCenterLeaf() {

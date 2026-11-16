@@ -19,7 +19,7 @@ import {
 } from "@/store/services/authApi";
 import { useAppDispatch } from "@/store/hooks";
 import { setCredentials } from "@/store/slices/authSlice";
-import { ApiErrorResponse } from "../error/api.error.response";
+import { ApiErrorResponse } from "@/types/api";
 import { useRouter } from "next/navigation";
 import { createLogger } from "@/core/logging/logger";
 

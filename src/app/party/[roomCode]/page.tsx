@@ -21,7 +21,7 @@ import {
     LiveKitMediaEngineStatus,
 } from "@/core/services/LiveKitMediaEngine";
 import ParticipantMediaMesh from "@/components/watch-party/ParticipantMediaMesh";
-import { ParticipantMedia } from "@/core/types/ParticipantMedia.type";
+import { ParticipantMedia } from "@/types/participantMedia";
 import { MediaSyncController } from "@/core/sync/MediaSyncController";
 import { RequireAuthenticatedSession } from "@/components/auth/RequireAuthenticatedSession";
 import { createLogger } from "@/core/logging/logger";

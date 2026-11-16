@@ -1,28 +1,8 @@
-import type { Rec } from "@/diagnostics/analysis/syncRunAnalysis";
-
-/** Mirrors SyncRunSummary in synchrostream-backend/src/modules/sync-metrics. */
-export interface SyncRunSummary {
-    runId: string;
-    createdAt: number;
-    lastRecordAt: number;
-    recordCount: number;
-    scenarios: string[];
-    roomIds: string[];
-    participants: string[];
-    clientSessions: string[];
-    notes: string;
-    tags: string[];
-    files: number;
-    bytes: number;
-}
-
-export type SyncRunMeta = Omit<SyncRunSummary, "files" | "bytes">;
-
-export interface SyncRunPayload {
-    meta: SyncRunMeta;
-    records: Rec[];
-    serverTime: number;
-}
+import type {
+    SyncRunMeta,
+    SyncRunPayload,
+    SyncRunSummary,
+} from "@/types/syncMetrics";
 
 /** Same-origin path; next.config rewrites /v1/* to the backend. */
 const BASE = "/v1/sync-metrics";

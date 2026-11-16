@@ -34,7 +34,6 @@ import {
     driftSeries,
     formatTextReport,
     keyMetrics,
-    Rec,
     Stats,
 } from "@/diagnostics/analysis/syncRunAnalysis";
 import {
@@ -51,14 +50,20 @@ import {
     summaryCsv,
     summaryLatex,
     summaryMarkdown,
-} from "./exportUtils";
-import { fmt, fmtDate, fmtMetric, STAT_HEADERS, statCells } from "./format";
-import { LIVE_WINDOW_MS, syncMetricsClient } from "./syncMetricsClient";
-import { useRunData } from "./useRunData";
-
-export type RunSource =
-    | { kind: "server"; runId: string }
-    | { kind: "local"; name: string; records: Rec[] };
+} from "@/utils/syncMetricsExport";
+import {
+    fmt,
+    fmtDate,
+    fmtMetric,
+    STAT_HEADERS,
+    statCells,
+} from "@/utils/syncMetricsFormat";
+import {
+    LIVE_WINDOW_MS,
+    syncMetricsClient,
+} from "@/store/services/syncMetricsClient";
+import { useRunData } from "@/hooks/useRunData";
+import type { RunSource } from "@/types/syncMetrics";
 
 const HEADLINE_KEYS = [
     "pairP50",

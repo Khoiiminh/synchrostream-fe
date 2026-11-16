@@ -31,8 +31,8 @@ import {
     GRID,
     RUN_COLORS,
     TOOLTIP_STYLE,
-} from "./format";
-import { exportChartPng, exportChartSvg } from "./exportUtils";
+} from "@/utils/syncMetricsFormat";
+import { exportChartPng, exportChartSvg } from "@/utils/syncMetricsExport";
 
 // ---------------------------------------------------------------- frame
 

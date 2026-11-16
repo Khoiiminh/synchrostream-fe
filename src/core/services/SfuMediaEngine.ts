@@ -1,5 +1,5 @@
 import * as mediasoupClient from "mediasoup-client";
-import { ParticipantMedia } from "../types/ParticipantMedia.type";
+import { ParticipantMedia } from "@/types/participantMedia";
 
 export interface SfuMediaEngineConfig {
     mediaSessionId: string;
