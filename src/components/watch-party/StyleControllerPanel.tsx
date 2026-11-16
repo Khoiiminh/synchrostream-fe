@@ -40,7 +40,6 @@ export default function StyleControllerPanel() {
     const [isMinimized, setIsMinimized] = useState(false);
 
     const [copiedCode, setCopiedCode] = useState(false);
-    const [copiedPass, setCopiedPass] = useState(false);
 
     const [position, setPosition] = useState<PanelPosition>({
         x: 24,
@@ -122,18 +121,12 @@ export default function StyleControllerPanel() {
         setIsMinimized((previous) => !previous);
     };
 
-    const handleCopyText = (p: { text: string; type: "code" | "pass" }) => {
+    const handleCopyText = (p: { text: string }) => {
         navigator.clipboard.writeText(p.text);
 
-        if (p.type === "code") {
-            setCopiedCode(true);
+        setCopiedCode(true);
 
-            setTimeout(() => setCopiedCode(false), 2000);
-        } else {
-            setCopiedPass(true);
-
-            setTimeout(() => setCopiedPass(false), 2000);
-        }
+        setTimeout(() => setCopiedCode(false), 2000);
     };
 
     return (
@@ -315,74 +308,12 @@ export default function StyleControllerPanel() {
 
                                                         handleCopyText({
                                                             text: activeRoom.roomCode,
-                                                            type: "code",
                                                         });
                                                     }}
                                                 >
                                                     <Copy size={10} />
                                                 </ActionIcon>
                                             </Tooltip>
-                                        </Group>
-                                    </Group>
-
-                                    <Group justify="space-between">
-                                        <Text
-                                            size="11px"
-                                            className="text-zinc-400"
-                                        >
-                                            Password:
-                                        </Text>
-
-                                        <Group gap={4}>
-                                            <Text
-                                                size="11px"
-                                                fw={700}
-                                                className="
-                          font-mono
-                          text-zinc-100
-                          bg-zinc-900
-                          px-1
-                          rounded
-                          border
-                          border-zinc-800
-                          max-w-27.5
-                          truncate
-                        "
-                                            >
-                                                {activeRoom.passwordPlain || (
-                                                    <span className="italic text-zinc-600 font-sans">
-                                                        None
-                                                    </span>
-                                                )}
-                                            </Text>
-
-                                            {activeRoom.passwordPlain && (
-                                                <Tooltip
-                                                    label={
-                                                        copiedPass
-                                                            ? "Copied!"
-                                                            : "Copy Password"
-                                                    }
-                                                    position="top"
-                                                    withArrow
-                                                >
-                                                    <ActionIcon
-                                                        size="xs"
-                                                        variant="subtle"
-                                                        color="teal"
-                                                        onClick={(event) => {
-                                                            event.stopPropagation();
-
-                                                            handleCopyText({
-                                                                text: activeRoom.passwordPlain!,
-                                                                type: "pass",
-                                                            });
-                                                        }}
-                                                    >
-                                                        <Copy size={10} />
-                                                    </ActionIcon>
-                                                </Tooltip>
-                                            )}
                                         </Group>
                                     </Group>
                                 </Stack>
