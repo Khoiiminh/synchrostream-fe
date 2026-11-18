@@ -1,135 +1,210 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { Group, Text, Container, Button, Stack, TextInput, Modal } from '@mantine/core';
-import ProfileMenuClientLeaf from './ProfileMenuClientLeaf';
-import { useRouter } from 'next/navigation';
-import { LogIn, Users } from 'lucide-react';
+import React, { useState } from "react";
+import Link from "next/link";
+import {
+    Group,
+    Text,
+    Container,
+    Button,
+    Stack,
+    TextInput,
+    PasswordInput,
+    Modal,
+} from "@mantine/core";
+import ProfileMenuClientLeaf from "./ProfileMenuClientLeaf";
+import { useRouter } from "next/navigation";
+import { Hash, KeyRound, LogIn, Users } from "lucide-react";
+import { guardedNavigate } from "@/core/navigation/leaveGuard";
+import {
+    ROOM_CODE_PATTERN,
+    ROOM_PASSWORD_MAX_LENGTH,
+    ROOM_PASSWORD_MIN_LENGTH,
+    saveJoinPassword,
+} from "@/lib/roomAccessKeys";
+import ModalHeading from "./ModalHeading";
 
 interface NavbarWrapperProps {
-  children: React.ReactNode;
+    children: React.ReactNode;
 }
 
 export default function NavbarWrapper({ children }: NavbarWrapperProps) {
-  const router = useRouter();
-  const [targetRoomCode, setTargetRoomCode] = useState('');
-  const [targetPassword, setTargetPassword] = useState('');
-  const [opened, setOpened] = useState(false);
+    const router = useRouter();
+    const [targetRoomCode, setTargetRoomCode] = useState("");
+    const [targetPassword, setTargetPassword] = useState("");
+    const [opened, setOpened] = useState(false);
 
-  const handleJoinRoomSubmit = (e: React.SubmitEvent) => {
-    e.preventDefault();
-    const cleanCode = targetRoomCode.trim().toUpperCase();
-    const cleanPassword = targetPassword.trim();
+    const canJoin =
+        ROOM_CODE_PATTERN.test(targetRoomCode.trim().toUpperCase()) &&
+        targetPassword.trim().length >= ROOM_PASSWORD_MIN_LENGTH;
 
-    if (!cleanCode) {
-      return;
-    }
+    const handleJoinRoomSubmit = (e: React.SubmitEvent) => {
+        e.preventDefault();
+        const cleanCode = targetRoomCode.trim().toUpperCase();
+        const cleanPassword = targetPassword.trim();
 
-    router.push(`/party/${cleanCode}?pwd=${encodeURIComponent(cleanPassword)}`);
-
-    setTargetRoomCode('');
-    setTargetPassword('');
-    setOpened(false);
-  };
-
-  return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col">
-      <header className="w-full bg-zinc-900/50 backdrop-blur border-b border-zinc-800 sticky top-0 z-50">
-        <Container size="xl" h={64}>
-          <Group justify="space-between" h="100%">
-            <Link href="/catalog" passHref style={{ textDecoration: 'none' }}>
-              <Text fw={900} className="text-xl tracking-tighter text-white hover:opacity-90 transition-opacity">
-                SYNCHROSTREAM
-              </Text>
-            </Link>
-
-            <Group gap="md">
-              {/* Trigger Button to open the Room Join HUD Panel */}
-              <Button
-                variant="subtle"
-                color="teal"
-                size="sm"
-                leftSection={<Users size={16} />}
-                onClick={() => setOpened(true)}
-                className="hover:bg-zinc-800/60 text-teal-400"
-              >
-                Join Room
-              </Button>
-
-              <ProfileMenuClientLeaf />
-            </Group>
-          </Group>
-        </Container>
-      </header>
-
-      {/* Pop-up Panel Modal Layer */}
-      <Modal
-        opened={opened}
-        onClose={() => setOpened(false)}
-        title={
-          <Group gap="xs">
-            <Users size={18} className="text-teal-400" />
-            <Text fw={700} size="sm" className="text-zinc-200 uppercase tracking-wide">
-              Join Watch Session
-            </Text>
-          </Group>
+        // Locked until both fields are filled in (the button is disabled too).
+        if (!canJoin) {
+            return;
         }
-        centered
-        radius="md"
-        styles={{
-          content: { backgroundColor: '#18181b', border: '1px solid rgba(63, 63, 70, 0.4)' },
-          header: { backgroundColor: '#18181b', borderBottom: '1px solid rgba(63, 63, 70, 0.2)' },
-          close: { color: '#a1a1aa', '&:hover': { backgroundColor: 'rgba(63, 63, 70, 0.4)' } }
-        }}
-      >
-        <form onSubmit={handleJoinRoomSubmit}>
-          <Stack gap="md" mt="xs">
-            <TextInput
-              label="Session Code"
-              description="Enter the unique 6-character room token shared by the host."
-              placeholder="e.g. 7E29T6"
-              required
-              autoFocus
-              value={targetRoomCode}
-              onChange={(e) => setTargetRoomCode(e.currentTarget.value)}
-              styles={{
-                input: { backgroundColor: '#09090b', borderColor: 'rgba(63, 63, 70, 0.6)', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'monospace' },
-                label: { color: '#e4e4e7', fontWeight: 600 },
-                description: { color: '#71717a' }
-              }}
-            />
 
-            {/* NEW: Password Constraint field */}
-            <TextInput
-              label="Room Password"
-              description="Provide the protection key configuration established by the host."
-              placeholder="Enter room password..."
-              value={targetPassword}
-              onChange={(e) => setTargetPassword(e.currentTarget.value)}
-              styles={{
-                input: { backgroundColor: '#09090b', borderColor: 'rgba(63, 63, 70, 0.6)', color: '#fff' },
-                label: { color: '#e4e4e7', fontWeight: 600 },
-                description: { color: '#71717a' }
-              }}
-            />
+        // The password goes to this tab's storage, never into the URL. The
+        // party page reads it from there for the join handshake.
+        saveJoinPassword({ roomCode: cleanCode, password: cleanPassword });
 
-            <Button
-              type="submit"
-              color="teal"
-              fullWidth
-              disabled={!targetRoomCode.trim()}
-              leftSection={<LogIn size={14} />}
+        // From inside a party this is a room switch: leave the current room first.
+        guardedNavigate(router, `/party/${cleanCode}`);
+
+        setTargetRoomCode("");
+        setTargetPassword("");
+        setOpened(false);
+    };
+
+    return (
+        <div className="min-h-screen flex flex-col">
+            <header className="w-full bg-[#070b12]/70 backdrop-blur-md border-b border-white/5 sticky top-0 z-50">
+                <Container size="xl" h={64}>
+                    <Group justify="space-between" h="100%">
+                        <Link
+                            href="/catalog"
+                            passHref
+                            style={{ textDecoration: "none" }}
+                        >
+                            <Group
+                                gap={10}
+                                className="hover:opacity-90 transition-opacity"
+                            >
+                                {/* Logo mark: two offset play triangles = "in sync". */}
+                                <svg
+                                    width="28"
+                                    height="28"
+                                    viewBox="0 0 28 28"
+                                    aria-hidden="true"
+                                >
+                                    <defs>
+                                        <linearGradient
+                                            id="ss-logo"
+                                            x1="0"
+                                            y1="0"
+                                            x2="1"
+                                            y2="1"
+                                        >
+                                            <stop
+                                                offset="0"
+                                                stopColor="#5eead4"
+                                            />
+                                            <stop
+                                                offset="1"
+                                                stopColor="#60a5fa"
+                                            />
+                                        </linearGradient>
+                                    </defs>
+                                    <path
+                                        d="M4 5 L17 14 L4 23 Z"
+                                        fill="url(#ss-logo)"
+                                        opacity="0.55"
+                                    />
+                                    <path
+                                        d="M11 5 L24 14 L11 23 Z"
+                                        fill="url(#ss-logo)"
+                                    />
+                                </svg>
+                                <Text
+                                    fw={900}
+                                    className="text-xl tracking-tighter text-brand-gradient"
+                                >
+                                    SYNCHROSTREAM
+                                </Text>
+                            </Group>
+                        </Link>
+
+                        <Group gap="md">
+                            {/* Trigger Button to open the Room Join HUD Panel */}
+                            <Button
+                                variant="subtle"
+                                color="teal"
+                                size="sm"
+                                leftSection={<Users size={16} />}
+                                onClick={() => setOpened(true)}
+                                className="hover:bg-zinc-800/60 text-teal-400"
+                            >
+                                Join Room
+                            </Button>
+
+                            <ProfileMenuClientLeaf />
+                        </Group>
+                    </Group>
+                </Container>
+            </header>
+
+            {/* Join a room: both the code and the room's password are required. */}
+            <Modal
+                opened={opened}
+                onClose={() => setOpened(false)}
+                title={
+                    <ModalHeading
+                        icon={<Users size={20} />}
+                        title="Join a watch party"
+                        subtitle="Use the code and password from your host"
+                    />
+                }
             >
-              Enter Room Pipeline
-            </Button>
-          </Stack>
-        </form>
-      </Modal>
+                <form onSubmit={handleJoinRoomSubmit}>
+                    <Stack gap="md">
+                        <TextInput
+                            label="Room code"
+                            description="6 letters or numbers"
+                            placeholder="7E29T6"
+                            required
+                            data-autofocus
+                            maxLength={6}
+                            autoComplete="off"
+                            spellCheck={false}
+                            leftSection={<Hash size={16} />}
+                            value={targetRoomCode}
+                            onChange={(e) =>
+                                setTargetRoomCode(
+                                    e.currentTarget.value
+                                        .toUpperCase()
+                                        .replace(/[^A-Z0-9]/g, ""),
+                                )
+                            }
+                            classNames={{
+                                input: "font-mono! tracking-[0.35em]! text-base! font-bold!",
+                            }}
+                        />
 
-      <main className="grow flex flex-col">
-        {children}
-      </main>
-    </div>
-  );
+                        <PasswordInput
+                            label="Room password"
+                            placeholder="Enter the room password"
+                            required
+                            maxLength={ROOM_PASSWORD_MAX_LENGTH}
+                            autoComplete="off"
+                            leftSection={<KeyRound size={16} />}
+                            value={targetPassword}
+                            onChange={(e) =>
+                                setTargetPassword(e.currentTarget.value)
+                            }
+                        />
+
+                        <Button
+                            type="submit"
+                            fullWidth
+                            size="md"
+                            radius="md"
+                            variant="gradient"
+                            gradient={{ from: "teal.4", to: "cyan.5", deg: 90 }}
+                            className="text-zinc-950!"
+                            disabled={!canJoin}
+                            leftSection={<LogIn size={18} />}
+                        >
+                            Enter A Room
+                        </Button>
+                    </Stack>
+                </form>
+            </Modal>
+
+            <main className="grow flex flex-col">{children}</main>
+        </div>
+    );
 }

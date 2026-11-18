@@ -1,446 +1,384 @@
 "use client";
 
-import React, {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import {
-  Stack,
-  ScrollArea,
-  Text,
-  Box,
-  TextInput,
-  ActionIcon,
-  Group,
+    Stack,
+    ScrollArea,
+    Text,
+    Box,
+    TextInput,
+    ActionIcon,
+    Group,
 } from "@mantine/core";
 
-import {
-  Send,
-  MessageSquare,
-  ChevronUp,
-  ChevronDown,
-} from "lucide-react";
+import { Send, MessageSquare, ChevronUp, ChevronDown } from "lucide-react";
 
 import { useParams } from "next/navigation";
 import { watchPartyGatewayEngine } from "@/store";
+import type { ChatMessageBroadcastPayload } from "@/types/watchParty";
 
 interface FloatingMessage {
-  username: string;
-  text: string;
-}
-
-interface ChatMessageBroadcastPayload {
-  userId: string;
-  username: string;
-  message: string;
-  timestamp: number;
+    kind: "self" | "other" | "system";
+    username: string;
+    text: string;
 }
 
 interface PanelPosition {
-  x: number;
-  y: number;
+    x: number;
+    y: number;
 }
 
 export default function FloatingChatOverlay() {
-  const params = useParams();
+    const params = useParams();
 
-  const roomCode =
-    (params?.roomCode as string) || "";
+    const roomCode = (params?.roomCode as string) || "";
 
-  const [messages, setMessages] =
-    useState<FloatingMessage[]>([
-      {
-        username: "System",
-        text:
-          "Connected to video stream layout overhead layer.",
-      },
-    ]);
-
-  const [input, setInput] = useState("");
-
-  const [isMinimized, setIsMinimized] =
-    useState(false);
-
-  const scrollRef =
-    useRef<HTMLDivElement>(null);
-
-  const dragStateRef = useRef<{
-    dragging: boolean;
-    startPointerX: number;
-    startPointerY: number;
-    startPositionX: number;
-    startPositionY: number;
-  }>({
-    dragging: false,
-    startPointerX: 0,
-    startPointerY: 0,
-    startPositionX: 0,
-    startPositionY: 0,
-  });
-
-  const didDragRef = useRef(false);
-
-  const [position, setPosition] = useState<PanelPosition>(() => {
-    if (typeof window === "undefined") {
-      return {
-        x: 0,
-        y: 0,
-      };
-    }
-
-    const width = 320;
-    const height = 360;
-    const right = 24;
-    const bottom = 24;
-
-    return {
-      x: Math.max(
-        0,
-        window.innerWidth - width - right,
-      ),
-      y: Math.max(
-        0,
-        window.innerHeight - height - bottom,
-      ),
-    };
-  });
-
-  useEffect(() => {
-    const handleIncomingMessage = (
-      data: ChatMessageBroadcastPayload,
-    ) => {
-      setMessages((prev) => [
-        ...prev,
+    const [messages, setMessages] = useState<FloatingMessage[]>([
         {
-          username: data.username,
-          text: data.message,
+            kind: "system",
+            username: "System",
+            text: "You joined the room. Say hi 👋",
         },
-      ]);
-    };
-
-    const removeChatListener = watchPartyGatewayEngine.on({
-      event: "room:chat:broadcast",
-      callback: handleIncomingMessage,
-    });
-
-    return () => {
-      removeChatListener();
-    };
-  }, []);
-
-  useEffect(() => {
-    scrollRef.current?.scrollTo({
-      top: scrollRef.current.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [messages]);
-
-  const handleSend = (
-    e: React.FormEvent<HTMLFormElement>,
-  ) => {
-    e.preventDefault();
-
-    const cleanMessage = input.trim();
-
-    if (!cleanMessage || !roomCode) {
-      return;
-    }
-
-    watchPartyGatewayEngine.emitChatMessage({
-      roomCode: roomCode.toUpperCase(),
-      message: cleanMessage,
-    });
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        username: "Me",
-        text: cleanMessage,
-      },
     ]);
 
-    setInput("");
-  };
+    // Messages from others that arrived while the panel was minimized.
+    const [unreadCount, setUnreadCount] = useState(0);
+    const isMinimizedRef = useRef(false);
 
-  const handleDragStart = (
-    event: React.PointerEvent<HTMLDivElement>,
-  ) => {
-    if (event.button !== 0) {
-      return;
-    }
+    const [input, setInput] = useState("");
 
-    dragStateRef.current = {
-      dragging: true,
-      startPointerX: event.clientX,
-      startPointerY: event.clientY,
-      startPositionX: position.x,
-      startPositionY: position.y,
+    const [isMinimized, setIsMinimized] = useState(false);
+
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    const dragStateRef = useRef<{
+        dragging: boolean;
+        startPointerX: number;
+        startPointerY: number;
+        startPositionX: number;
+        startPositionY: number;
+    }>({
+        dragging: false,
+        startPointerX: 0,
+        startPointerY: 0,
+        startPositionX: 0,
+        startPositionY: 0,
+    });
+
+    const didDragRef = useRef(false);
+
+    const [position, setPosition] = useState<PanelPosition>(() => {
+        if (typeof window === "undefined") {
+            return {
+                x: 0,
+                y: 0,
+            };
+        }
+
+        const width = 320;
+        const right = 24;
+
+        // Top-right, under the top bar: clear of the player's control bar
+        // (quality, fullscreen) along the bottom.
+        return {
+            x: Math.max(0, window.innerWidth - width - right),
+            y: 92,
+        };
+    });
+
+    useEffect(() => {
+        const handleIncomingMessage = (data: ChatMessageBroadcastPayload) => {
+            setMessages((prev) => [
+                ...prev,
+                {
+                    kind: "other",
+                    username: data.username,
+                    text: data.message,
+                },
+            ]);
+
+            if (isMinimizedRef.current) {
+                setUnreadCount((count) => count + 1);
+            }
+        };
+
+        const removeChatListener = watchPartyGatewayEngine.on({
+            event: "room:chat:broadcast",
+            callback: handleIncomingMessage,
+        });
+
+        return () => {
+            removeChatListener();
+        };
+    }, []);
+
+    useEffect(() => {
+        scrollRef.current?.scrollTo({
+            top: scrollRef.current.scrollHeight,
+            behavior: "smooth",
+        });
+    }, [messages]);
+
+    const handleSend = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+
+        const cleanMessage = input.trim();
+
+        if (!cleanMessage || !roomCode) {
+            return;
+        }
+
+        watchPartyGatewayEngine.emitChatMessage({
+            roomCode: roomCode.toUpperCase(),
+            message: cleanMessage,
+        });
+
+        setMessages((prev) => [
+            ...prev,
+            {
+                kind: "self",
+                username: "Me",
+                text: cleanMessage,
+            },
+        ]);
+
+        setInput("");
     };
 
-    didDragRef.current = false;
+    const handleDragStart = (event: React.PointerEvent<HTMLDivElement>) => {
+        if (event.button !== 0) {
+            return;
+        }
 
-    event.currentTarget.setPointerCapture(
-      event.pointerId,
-    );
-  };
+        dragStateRef.current = {
+            dragging: true,
+            startPointerX: event.clientX,
+            startPointerY: event.clientY,
+            startPositionX: position.x,
+            startPositionY: position.y,
+        };
 
-  const handleDragMove = (
-    event: React.PointerEvent<HTMLDivElement>,
-  ) => {
-    if (!dragStateRef.current.dragging) {
-      return;
-    }
+        didDragRef.current = false;
 
-    const deltaX =
-      event.clientX -
-      dragStateRef.current.startPointerX;
+        event.currentTarget.setPointerCapture(event.pointerId);
+    };
 
-    const deltaY =
-      event.clientY -
-      dragStateRef.current.startPointerY;
+    const handleDragMove = (event: React.PointerEvent<HTMLDivElement>) => {
+        if (!dragStateRef.current.dragging) {
+            return;
+        }
 
-    if (
-      Math.abs(deltaX) > 3 ||
-      Math.abs(deltaY) > 3
-    ) {
-      didDragRef.current = true;
-    }
+        const deltaX = event.clientX - dragStateRef.current.startPointerX;
 
-    setPosition({
-      x: Math.max(
-        0,
-        dragStateRef.current.startPositionX +
-          deltaX,
-      ),
-      y: Math.max(
-        0,
-        dragStateRef.current.startPositionY +
-          deltaY,
-      ),
-    });
-  };
+        const deltaY = event.clientY - dragStateRef.current.startPointerY;
 
-  const handleDragEnd = (
-    event: React.PointerEvent<HTMLDivElement>,
-  ) => {
-    if (!dragStateRef.current.dragging) {
-      return;
-    }
+        if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+            didDragRef.current = true;
+        }
 
-    dragStateRef.current.dragging = false;
+        setPosition({
+            x: Math.max(0, dragStateRef.current.startPositionX + deltaX),
+            y: Math.max(0, dragStateRef.current.startPositionY + deltaY),
+        });
+    };
 
-    if (
-      event.currentTarget.hasPointerCapture(
-        event.pointerId,
-      )
-    ) {
-      event.currentTarget.releasePointerCapture(
-        event.pointerId,
-      );
-    }
-  };
+    const handleDragEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+        if (!dragStateRef.current.dragging) {
+            return;
+        }
 
-  const handleHeaderClick = () => {
-    if (didDragRef.current) {
-      didDragRef.current = false;
-      return;
-    }
+        dragStateRef.current.dragging = false;
 
-    setIsMinimized((previous) => !previous);
-  };
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+    };
 
-  return (
-    <Box
-      className="
-        fixed
-        z-40
-        flex
-        flex-col
-        gap-2
-        transition-[width,height]
-        duration-200
-        ease-in-out
-      "
-      style={{
-        left: position.x,
-        top: position.y,
-        width: isMinimized
-          ? "fit-content"
-          : 320,
-        height: isMinimized
-          ? "auto"
-          : 360,
-      }}
-    >
-      {/*
-       * CHAT HEADER / DRAG HANDLE
-       */}
-      <Group
-        justify="space-between"
-        className="
-          bg-black/50
-          backdrop-blur-md
-          border
-          border-white/10
-          rounded-md
-          px-2
-          py-1.5
-          shadow-lg
-          cursor-grab
-          active:cursor-grabbing
-          select-none
-        "
-        onPointerDown={handleDragStart}
-        onPointerMove={handleDragMove}
-        onPointerUp={handleDragEnd}
-        onPointerCancel={handleDragEnd}
-        onClick={handleHeaderClick}
-        style={{
-          touchAction: "none",
-        }}
-      >
-        <Group gap="xs">
-          <MessageSquare
-            size={14}
-            className="text-teal-400"
-          />
+    const handleHeaderClick = () => {
+        if (didDragRef.current) {
+            didDragRef.current = false;
+            return;
+        }
 
-          <Text
-            size="xs"
-            fw={700}
-            className="
-              text-zinc-200
-              uppercase
-              tracking-wide
-              whitespace-nowrap
-            "
-          >
-            Text Chat
-          </Text>
-        </Group>
+        const next = !isMinimized;
+        isMinimizedRef.current = next;
+        setIsMinimized(next);
 
-        <ActionIcon
-          variant="transparent"
-          size="xs"
-          color="zinc.4"
-          style={{
-            pointerEvents: "none",
-          }}
-        >
-          {isMinimized ? (
-            <ChevronUp size={14} />
-          ) : (
-            <ChevronDown size={14} />
-          )}
-        </ActionIcon>
-      </Group>
+        if (!next) {
+            setUnreadCount(0);
+        }
+    };
 
-      {/*
-       * CHAT CONTENT
-       *
-       * Completely removed visually when minimized.
-       */}
-      <div
-        className={`
-          flex
-          flex-col
-          gap-2
-          flex-1
-          min-h-0
-          transition-all
-          duration-300
-          ease-in-out
-          overflow-hidden
-          ${
-            isMinimized
-              ? "max-h-0 opacity-0 pointer-events-none"
-              : "max-h-90 opacity-100"
-          }
-        `}
-      >
-        <ScrollArea
-          style={{ flex: 1 }}
-          viewportRef={scrollRef}
-          className="px-2"
-        >
-          <Stack
-            gap="xs"
-            justify="end"
-            className="min-h-full"
-          >
-            {messages.map((msg, index) => (
-              <Box
-                key={index}
-                className="
-                  bg-black/40
-                  backdrop-blur-xs
-                  p-2
-                  rounded-md
-                  border
-                  border-white/5
-                  self-start
-                  max-w-[90%]
-                "
-              >
-                <Text
-                  size="11px"
-                  fw={700}
-                  color="teal.4"
-                  mb={1}
-                >
-                  {msg.username}
-                </Text>
-
-                <Text
-                  size="xs"
-                  color="zinc.1"
-                  className="
-                    wrap-break-word
-                    leading-relaxed
-                  "
-                >
-                  {msg.text}
-                </Text>
-              </Box>
-            ))}
-          </Stack>
-          </ScrollArea>
-
-        <form
-          onSubmit={handleSend}
-          className="px-2"
-        >
-          <TextInput
-            placeholder="Type message..."
-            value={input}
-            onChange={(e) =>
-              setInput(e.currentTarget.value)
-            }
-            rightSection={
-              <ActionIcon
-                type="submit"
-                variant="transparent"
-                color="teal"
-                disabled={!input.trim()}
-              >
-                <Send size={14} />
-              </ActionIcon>
-            }
-            styles={{
-              input: {
-                backgroundColor:
-                  "rgba(15, 15, 17, 0.7)",
-                backdropFilter: "blur(8px)",
-                borderColor:
-                  "rgba(39, 39, 42, 0.6)",
-                color: "#fff",
-              },
+    return (
+        <Box
+            className="fixed z-40 flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/55 shadow-2xl shadow-black/50 backdrop-blur-xl transition-[width,height] duration-200 ease-in-out"
+            style={{
+                left: position.x,
+                top: position.y,
+                width: isMinimized ? "fit-content" : 320,
+                height: isMinimized ? "auto" : 360,
             }}
-          />
-        </form>
-      </div>
-    </Box>
-  );
+        >
+            {/*
+             * CHAT HEADER / DRAG HANDLE
+             */}
+            <Group
+                justify="space-between"
+                wrap="nowrap"
+                className="cursor-grab select-none border-b border-white/5 px-3 py-2 active:cursor-grabbing"
+                onPointerDown={handleDragStart}
+                onPointerMove={handleDragMove}
+                onPointerUp={handleDragEnd}
+                onPointerCancel={handleDragEnd}
+                onClick={handleHeaderClick}
+                style={{
+                    touchAction: "none",
+                }}
+            >
+                <Group gap="xs" wrap="nowrap">
+                    <MessageSquare size={14} className="text-teal-400" />
+
+                    <Text
+                        size="xs"
+                        fw={700}
+                        className="whitespace-nowrap uppercase tracking-wide text-zinc-200"
+                    >
+                        Chat
+                    </Text>
+
+                    {isMinimized && unreadCount > 0 && (
+                        <span className="rounded-full bg-teal-400 px-1.5 text-[10px] font-bold leading-4 text-zinc-950">
+                            {unreadCount}
+                        </span>
+                    )}
+                </Group>
+
+                <ActionIcon
+                    variant="transparent"
+                    size="xs"
+                    color="zinc.4"
+                    style={{
+                        pointerEvents: "none",
+                    }}
+                >
+                    {isMinimized ? (
+                        <ChevronUp size={14} />
+                    ) : (
+                        <ChevronDown size={14} />
+                    )}
+                </ActionIcon>
+            </Group>
+
+            {/*
+             * CHAT CONTENT
+             *
+             * Completely removed visually when minimized.
+             */}
+            <div
+                className={`flex min-h-0 flex-1 flex-col gap-2 overflow-hidden transition-all duration-300 ease-in-out ${
+                    isMinimized
+                        ? "max-h-0 opacity-0 pointer-events-none"
+                        : "max-h-90 opacity-100 pb-2"
+                }`}
+            >
+                <ScrollArea
+                    style={{ flex: 1 }}
+                    viewportRef={scrollRef}
+                    className="px-3"
+                >
+                    <Stack gap={8} justify="end" className="min-h-full py-2">
+                        {messages.map((msg, index) => {
+                            if (msg.kind === "system") {
+                                return (
+                                    <Text
+                                        key={index}
+                                        size="11px"
+                                        ta="center"
+                                        className="px-4 text-zinc-500"
+                                    >
+                                        {msg.text}
+                                    </Text>
+                                );
+                            }
+
+                            if (msg.kind === "self") {
+                                return (
+                                    <Box
+                                        key={index}
+                                        className="max-w-[80%] self-end rounded-2xl rounded-br-md bg-teal-500/90 px-3 py-1.5 text-zinc-950 shadow-md"
+                                    >
+                                        <Text
+                                            size="xs"
+                                            fw={500}
+                                            className="wrap-break-word leading-relaxed"
+                                        >
+                                            {msg.text}
+                                        </Text>
+                                    </Box>
+                                );
+                            }
+
+                            return (
+                                <Group
+                                    key={index}
+                                    gap={6}
+                                    align="flex-end"
+                                    wrap="nowrap"
+                                    className="max-w-[88%] self-start"
+                                >
+                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-500/20 text-[10px] font-bold text-sky-200 ring-1 ring-sky-300/20">
+                                        {msg.username.slice(0, 1).toUpperCase()}
+                                    </span>
+                                    <Box className="min-w-0 rounded-2xl rounded-bl-md border border-white/5 bg-white/10 px-3 py-1.5">
+                                        <Text
+                                            size="10px"
+                                            fw={700}
+                                            className="text-sky-300"
+                                        >
+                                            {msg.username}
+                                        </Text>
+                                        <Text
+                                            size="xs"
+                                            className="wrap-break-word leading-relaxed text-zinc-100"
+                                        >
+                                            {msg.text}
+                                        </Text>
+                                    </Box>
+                                </Group>
+                            );
+                        })}
+                    </Stack>
+                </ScrollArea>
+
+                <form onSubmit={handleSend} className="px-3">
+                    <TextInput
+                        placeholder="Say something…"
+                        radius="xl"
+                        value={input}
+                        onChange={(e) => setInput(e.currentTarget.value)}
+                        rightSection={
+                            <ActionIcon
+                                type="submit"
+                                variant="filled"
+                                color="teal"
+                                radius="xl"
+                                size="md"
+                                disabled={!input.trim()}
+                            >
+                                <Send size={13} />
+                            </ActionIcon>
+                        }
+                        styles={{
+                            input: {
+                                backgroundColor: "rgba(255, 255, 255, 0.06)",
+                                borderColor: "rgba(255, 255, 255, 0.08)",
+                                color: "#fff",
+                            },
+                        }}
+                    />
+                </form>
+            </div>
+        </Box>
+    );
 }
