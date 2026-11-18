@@ -12,6 +12,10 @@ import {
 } from "@/store/slices/roomSlice";
 import { createLogger } from "@/core/logging/logger";
 
+/** RoomErrorDetail codes for a session that ended for good. */
+export const ROOM_CLOSED_CODE = "ROOM_CLOSED";
+export const ROOM_LEFT_ELSEWHERE_CODE = "ROOM_LEFT_ELSEWHERE";
+
 const log = createLogger("WatchPartyGateway");
 
 interface JoinRoomDto {
@@ -297,7 +301,7 @@ export class WatchPartyGatewayEngine {
         this.socket.on("room:terminated", this.handleRoomTerminated);
 
         // Left from another tab: like termination, never auto-rejoin.
-        this.socket.on("room:left", this.handleRoomTerminated);
+        this.socket.on("room:left", this.handleRoomLeftElsewhere);
 
         // Re-attach listeners registered through on() to this (possibly new) socket.
         for (const [event, callbacks] of this.externalListeners) {
@@ -307,10 +311,40 @@ export class WatchPartyGatewayEngine {
         }
     }
 
-    private handleRoomTerminated = (): void => {
+    private handleRoomTerminated = (data?: { message?: string }): void => {
+        this.endRoomSession(
+            data?.message ||
+                "The watch party session has been closed by the host.",
+            ROOM_CLOSED_CODE,
+        );
+    };
+
+    private handleRoomLeftElsewhere = (data?: { message?: string }): void => {
+        this.endRoomSession(
+            data?.message || "You left this watch room in another window.",
+            ROOM_LEFT_ELSEWHERE_CODE,
+        );
+    };
+
+    /**
+     * The room session is over for this tab (closed by the host, or left in
+     * another tab). Recorded in the store right away, not only on the
+     * following server disconnect, so the page shows why instead of waiting
+     * for room state that will never arrive.
+     */
+    private endRoomSession(message: string, code: string): void {
         // A terminated room must never be rejoined automatically.
         this.roomTerminated = true;
-    };
+        this.lastRoomErrorRetryable = false;
+        this.lastRoomErrorMessage = message;
+        this.lastRoomErrorDetail = { code };
+        this.lastPlaybackSnapshot = null;
+        this.stopTelemetryHeartbeat();
+        this.store.dispatch(clearRoomSession());
+        this.store.dispatch(
+            setRoomError({ message, detail: this.lastRoomErrorDetail }),
+        );
+    }
 
     private handleRoomStateUpdate = (snapshot: RoomSnapshotPayload): void => {
         log.debug("Room sync snapshot received", {

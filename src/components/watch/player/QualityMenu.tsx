@@ -49,7 +49,7 @@ export default function QualityMenu({
                             }}
                             className={`w-full text-left text-xs px-2 py-1.5 rounded-xs transition-colors hover:bg-zinc-800 cursor-pointer ${
                                 currentQuality === "Auto"
-                                    ? "text-blue-400 font-bold"
+                                    ? "text-teal-300 font-bold"
                                     : "text-zinc-300"
                             }`}
                         >
@@ -68,7 +68,7 @@ export default function QualityMenu({
                                     }}
                                     className={`w-full text-left text-xs px-2 py-1.5 rounded-xs transition-colors hover:bg-zinc-800 cursor-pointer ${
                                         currentQuality === levelName
-                                            ? "text-blue-400 font-bold"
+                                            ? "text-teal-300 font-bold"
                                             : "text-zinc-300"
                                     }`}
                                 >

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
     Paper,
     Stack,
@@ -19,9 +19,16 @@ import {
     Ticket,
     ChevronUp,
     ChevronDown,
+    EyeOff,
+    Link2,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setUiStyles } from "@/store/slices/roomSlice";
+import {
+    buildInviteLink,
+    loadJoinPassword,
+    loadOwnedRoomPassword,
+} from "@/lib/roomAccessKeys";
 
 interface PanelPosition {
     x: number;
@@ -32,18 +39,40 @@ export default function StyleControllerPanel() {
     const dispatch = useAppDispatch();
 
     const activeRoom = useAppSelector((state) => state.room.activeRoom);
+    const userId = useAppSelector((state) => state.auth.userId);
+
+    // Only the room owner gets the access keys, to share with participants.
+    const isOwner = !!activeRoom && !!userId && activeRoom.ownerId === userId;
+
+    // activeRoom only arrives over the socket, so this never runs during SSR.
+    // Saved at creation (localStorage) first; else the password this tab
+    // joined with (sessionStorage). Null means this browser never knew it.
+    const ownedRoomCode = isOwner ? activeRoom.roomCode : null;
+    const roomPassword = useMemo(
+        () =>
+            ownedRoomCode
+                ? (loadOwnedRoomPassword(ownedRoomCode) ??
+                  loadJoinPassword(ownedRoomCode))
+                : null,
+        [ownedRoomCode],
+    );
+
+    const [showPassword, setShowPassword] = useState(false);
+    const [copiedField, setCopiedField] = useState<
+        "code" | "password" | "invite" | null
+    >(null);
 
     const { videoSize, videoOpacity } = useAppSelector(
         (state) => state.room.uiOptions,
     );
 
-    const [isMinimized, setIsMinimized] = useState(false);
-
-    const [copiedCode, setCopiedCode] = useState(false);
+    // Starts collapsed in the top row, right of "Back to Catalog", so it does
+    // not cover the participant tiles. The room code is also in the top pill.
+    const [isMinimized, setIsMinimized] = useState(true);
 
     const [position, setPosition] = useState<PanelPosition>({
-        x: 24,
-        y: 24,
+        x: 190,
+        y: 12,
     });
 
     const dragStateRef = useRef<{
@@ -121,26 +150,30 @@ export default function StyleControllerPanel() {
         setIsMinimized((previous) => !previous);
     };
 
-    const handleCopyText = (p: { text: string }) => {
+    const handleCopyText = (p: {
+        text: string;
+        field: "code" | "password" | "invite";
+    }) => {
         navigator.clipboard.writeText(p.text);
 
-        setCopiedCode(true);
+        setCopiedField(p.field);
 
-        setTimeout(() => setCopiedCode(false), 2000);
+        setTimeout(() => setCopiedField(null), 2000);
     };
 
     return (
         <Paper
             withBorder
             p={isMinimized ? "7px" : "sm"}
-            radius="md"
+            radius="lg"
             className="
         fixed
         z-50
-        bg-zinc-900/90
-        border-zinc-800
-        backdrop-blur-md
+        bg-zinc-950/55!
+        border-white/10!
+        backdrop-blur-xl
         shadow-2xl
+        shadow-black/50
         select-none
         transition-[width,padding]
         duration-200
@@ -185,7 +218,7 @@ export default function StyleControllerPanel() {
                 whitespace-nowrap
               "
                         >
-                            Canvas Overlay HUD
+                            Room &amp; overlay
                         </Text>
                     </Group>
 
@@ -224,7 +257,7 @@ export default function StyleControllerPanel() {
           `}
                 >
                     <Stack gap="xs">
-                        {activeRoom && (
+                        {activeRoom && isOwner && (
                             <Box
                                 className="
                   bg-zinc-950/90
@@ -292,7 +325,7 @@ export default function StyleControllerPanel() {
 
                                             <Tooltip
                                                 label={
-                                                    copiedCode
+                                                    copiedField === "code"
                                                         ? "Copied!"
                                                         : "Copy Code"
                                                 }
@@ -308,6 +341,7 @@ export default function StyleControllerPanel() {
 
                                                         handleCopyText({
                                                             text: activeRoom.roomCode,
+                                                            field: "code",
                                                         });
                                                     }}
                                                 >
@@ -316,6 +350,154 @@ export default function StyleControllerPanel() {
                                             </Tooltip>
                                         </Group>
                                     </Group>
+
+                                    <Group justify="space-between">
+                                        <Text
+                                            size="11px"
+                                            className="text-zinc-400"
+                                        >
+                                            Password:
+                                        </Text>
+
+                                        {roomPassword === null ? (
+                                            <Text
+                                                size="11px"
+                                                className="text-zinc-500 italic"
+                                            >
+                                                Not saved on this device
+                                            </Text>
+                                        ) : roomPassword === "" ? (
+                                            <Text
+                                                size="11px"
+                                                className="text-zinc-500 italic"
+                                            >
+                                                None
+                                            </Text>
+                                        ) : (
+                                            <Group gap={4}>
+                                                <Text
+                                                    size="11px"
+                                                    fw={700}
+                                                    className="
+                          font-mono
+                          text-zinc-100
+                          bg-zinc-900
+                          px-1
+                          rounded
+                          border
+                          border-zinc-800
+                        "
+                                                >
+                                                    {showPassword
+                                                        ? roomPassword
+                                                        : "••••••"}
+                                                </Text>
+
+                                                <Tooltip
+                                                    label={
+                                                        showPassword
+                                                            ? "Hide"
+                                                            : "Show"
+                                                    }
+                                                    position="top"
+                                                    withArrow
+                                                >
+                                                    <ActionIcon
+                                                        size="xs"
+                                                        variant="subtle"
+                                                        color="teal"
+                                                        onClick={(event) => {
+                                                            event.stopPropagation();
+                                                            setShowPassword(
+                                                                (v) => !v,
+                                                            );
+                                                        }}
+                                                    >
+                                                        {showPassword ? (
+                                                            <EyeOff size={10} />
+                                                        ) : (
+                                                            <Eye size={10} />
+                                                        )}
+                                                    </ActionIcon>
+                                                </Tooltip>
+
+                                                <Tooltip
+                                                    label={
+                                                        copiedField ===
+                                                        "password"
+                                                            ? "Copied!"
+                                                            : "Copy Password"
+                                                    }
+                                                    position="top"
+                                                    withArrow
+                                                >
+                                                    <ActionIcon
+                                                        size="xs"
+                                                        variant="subtle"
+                                                        color="teal"
+                                                        onClick={(event) => {
+                                                            event.stopPropagation();
+                                                            handleCopyText({
+                                                                text: roomPassword,
+                                                                field: "password",
+                                                            });
+                                                        }}
+                                                    >
+                                                        <Copy size={10} />
+                                                    </ActionIcon>
+                                                </Tooltip>
+                                            </Group>
+                                        )}
+                                    </Group>
+
+                                    {roomPassword !== null && (
+                                        <Group justify="flex-end" mt={2}>
+                                            <Tooltip
+                                                label={
+                                                    copiedField === "invite"
+                                                        ? "Copied!"
+                                                        : "Link with code and password"
+                                                }
+                                                position="top"
+                                                withArrow
+                                            >
+                                                <ActionIcon
+                                                    variant="light"
+                                                    color="teal"
+                                                    size="sm"
+                                                    w="auto"
+                                                    px={6}
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        handleCopyText({
+                                                            text: buildInviteLink(
+                                                                {
+                                                                    origin: window
+                                                                        .location
+                                                                        .origin,
+                                                                    roomCode:
+                                                                        activeRoom.roomCode,
+                                                                    password:
+                                                                        roomPassword,
+                                                                },
+                                                            ),
+                                                            field: "invite",
+                                                        });
+                                                    }}
+                                                >
+                                                    <Group gap={4}>
+                                                        <Link2 size={11} />
+                                                        <Text
+                                                            size="10px"
+                                                            fw={700}
+                                                        >
+                                                            Copy invite link
+                                                        </Text>
+                                                    </Group>
+                                                </ActionIcon>
+                                            </Tooltip>
+                                        </Group>
+                                    )}
                                 </Stack>
                             </Box>
                         )}

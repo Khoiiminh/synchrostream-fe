@@ -24,6 +24,13 @@ export class SyncEngine {
     // Core check guarding against interacting with an unparsed HLS manifest
     private isManifestReady = false;
 
+    // play() calls made before the manifest was parsed (e.g. the room snapshot
+    // right after a page reload) wait here instead of failing.
+    private manifestWaiters: {
+        resolve: () => void;
+        reject: (error: Error) => void;
+    }[] = [];
+
     constructor(store: Store) {
         this.store = store;
     }
@@ -50,6 +57,7 @@ export class SyncEngine {
                 this.isManifestReady = true;
                 this.setupListeners();
                 this.emitSnapshot();
+                this.settleManifestWaiters(null);
             });
 
             // Diagnostics listeners to log stream source retrieval problems
@@ -68,6 +76,7 @@ export class SyncEngine {
                 this.isManifestReady = true;
                 this.setupListeners();
                 this.emitSnapshot();
+                this.settleManifestWaiters(null);
                 p.element.removeEventListener("loadedmetadata", onMetadata);
             };
 
@@ -124,6 +133,47 @@ export class SyncEngine {
 
         this.playPromise = null; // Clean up memory reference
         this.isManifestReady = false;
+        this.settleManifestWaiters(
+            new Error("[SyncEngine] Video element was detached"),
+        );
+    }
+
+    private settleManifestWaiters(error: Error | null): void {
+        const waiters = this.manifestWaiters;
+        this.manifestWaiters = [];
+        for (const waiter of waiters) {
+            if (error) waiter.reject(error);
+            else waiter.resolve();
+        }
+    }
+
+    /** Resolves once the stream manifest is parsed and play() can start. */
+    private waitForManifestReady(timeoutMs = 20_000): Promise<void> {
+        if (this.isManifestReady) return Promise.resolve();
+
+        return new Promise<void>((resolve, reject) => {
+            const waiter = {
+                resolve: () => {
+                    clearTimeout(timeout);
+                    resolve();
+                },
+                reject: (error: Error) => {
+                    clearTimeout(timeout);
+                    reject(error);
+                },
+            };
+            const timeout = setTimeout(() => {
+                this.manifestWaiters = this.manifestWaiters.filter(
+                    (w) => w !== waiter,
+                );
+                reject(
+                    new Error(
+                        "[SyncEngine] PLAY rejected: HLS manifest was not ready in time",
+                    ),
+                );
+            }, timeoutMs);
+            this.manifestWaiters.push(waiter);
+        });
     }
 
     public async play(): Promise<void> {
@@ -133,17 +183,21 @@ export class SyncEngine {
             );
         }
 
+        const video = this.videoElement;
+
         if (!this.isManifestReady) {
-            throw new Error(
-                "[SyncEngine] PLAY rejected: HLS manifest is not ready",
-            );
+            log.debug("PLAY waiting for the HLS manifest");
+            await this.waitForManifestReady();
+            if (this.videoElement !== video) {
+                throw new Error(
+                    "[SyncEngine] PLAY rejected: video element changed while loading",
+                );
+            }
         }
 
         if (this.playPromise) {
             return this.playPromise;
         }
-
-        const video = this.videoElement;
 
         log.debug("PLAY requested", {
             currentTime: video.currentTime,

@@ -165,6 +165,13 @@ export class PlaybackCoordinator {
 
     private unsubscribeSnapshot: (() => void) | null = null;
 
+    /**
+     * Set while play() is blocked by the browser autoplay policy (typically
+     * right after a page reload, before any click). The next user gesture
+     * retries the reconciliation.
+     */
+    private removeAutoplayUnlock: (() => void) | null = null;
+
     private serverNow(): number {
         return this.clockSync ? this.clockSync.serverNow() : Date.now();
     }
@@ -249,6 +256,8 @@ export class PlaybackCoordinator {
         }
 
         this.stopMetricsCollection();
+        this.removeAutoplayUnlock?.();
+        this.removeAutoplayUnlock = null;
 
         log.debug("Stopped");
     }
@@ -612,11 +621,25 @@ export class PlaybackCoordinator {
                         error: String(error),
                     });
 
-                    log.error("Playback reconciliation failed", {
-                        expectedState,
-                        commandVersion,
-                        error,
-                    });
+                    const errorName =
+                        (error as { name?: string })?.name ?? null;
+                    if (errorName === "NotAllowedError") {
+                        log.warn(
+                            "Autoplay blocked by the browser; playback resumes on the next click or key press",
+                            { expectedState, commandVersion },
+                        );
+                        this.armAutoplayUnlock();
+                    } else {
+                        log.error("Playback reconciliation failed", {
+                            expectedState,
+                            commandVersion,
+                            errorName,
+                            errorMessage:
+                                error instanceof Error
+                                    ? error.message
+                                    : String(error),
+                        });
+                    }
 
                     return;
                 }
@@ -679,6 +702,30 @@ export class PlaybackCoordinator {
         } finally {
             this.isReconcilingPlayback = false;
         }
+    }
+
+    /** Retries reconciliation on the first user gesture after an autoplay block. */
+    private armAutoplayUnlock(): void {
+        if (this.removeAutoplayUnlock || typeof window === "undefined") return;
+
+        const events = ["pointerdown", "keydown", "touchend"] as const;
+        const onGesture = () => {
+            this.removeAutoplayUnlock?.();
+            this.removeAutoplayUnlock = null;
+            if (this.disposed) return;
+            this.lastReconcileFailureAt = 0;
+            this.reconcileOrigin = "snapshot";
+            void this.reconcilePlaybackCommands();
+        };
+
+        for (const event of events) {
+            window.addEventListener(event, onGesture, { capture: true });
+        }
+        this.removeAutoplayUnlock = () => {
+            for (const event of events) {
+                window.removeEventListener(event, onGesture, { capture: true });
+            }
+        };
     }
 
     /**

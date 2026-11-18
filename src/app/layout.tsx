@@ -13,8 +13,33 @@ import { SessionInterceptor } from "@/components/auth/SessionInterceptor";
  */
 
 const theme = createTheme({
-    primaryColor: "violet",
+    // One brand accent everywhere: teal buttons, sliders, focus rings.
+    primaryColor: "teal",
+    primaryShade: { light: 6, dark: 5 },
+    defaultRadius: "md",
     fontFamily: "Inter, sans-serif",
+    headings: { fontFamily: "Inter, sans-serif", fontWeight: "800" },
+    // Plain objects (not Modal.extend) so the theme stays serializable from
+    // this server component. Look lives in globals.css (.ss-modal-*).
+    components: {
+        Modal: {
+            defaultProps: {
+                radius: "lg",
+                centered: true,
+                overlayProps: { backgroundOpacity: 0.65, blur: 6 },
+                transitionProps: { transition: "pop", duration: 180 },
+            },
+            classNames: {
+                content: "ss-modal-content",
+                header: "ss-modal-header",
+                body: "ss-modal-body",
+                close: "ss-modal-close",
+            },
+        },
+        Input: {
+            classNames: { input: "ss-input" },
+        },
+    },
 });
 
 export const metadata = {

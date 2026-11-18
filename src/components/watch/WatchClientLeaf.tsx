@@ -94,6 +94,7 @@ export default function WatchClientLeaf({
     const roomId = activeRoom?.roomId;
     const roomCode = activeRoom?.roomCode;
     const ownerId = activeRoom?.ownerId;
+    const watcherCount = activeRoom?.members?.length ?? 1;
     const controller = useMemo<MediaSyncController | null>(() => {
         if (!streamUrl) {
             return null;
@@ -228,7 +229,11 @@ export default function WatchClientLeaf({
                 </div>
             )}
 
-            <div className="w-full max-w-(--size-xl) mx-auto px-4 md:px-6 py-4 flex flex-col justify-between relative z-10 h-full">
+            <div
+                className={`w-full mx-auto px-4 py-4 flex flex-col justify-between relative z-10 h-full ${
+                    isPartyMode ? "md:px-6" : "max-w-[76rem] md:px-10"
+                }`}
+            >
                 <Button
                     onClick={() => router.push("/catalog")}
                     variant="subtle"
@@ -260,6 +265,13 @@ export default function WatchClientLeaf({
                     onSeek={handleSeek}
                     onDurationChange={handleDurationChange}
                     onQualityLevelsChange={handleQualityLevelsChange}
+                    posterUrl={activePosterUrl}
+                    title={streamData?.title ?? cachedCatalogMovie?.title}
+                    startSubtitle={
+                        isPartyMode
+                            ? `${watcherCount} ${watcherCount === 1 ? "person" : "people"} in the room · press play to start for everyone`
+                            : undefined
+                    }
                 />
 
                 <div className="w-full pl-4 md:pl-8">

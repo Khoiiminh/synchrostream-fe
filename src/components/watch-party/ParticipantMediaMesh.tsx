@@ -1,6 +1,6 @@
 import { ParticipantNode } from "@/store/slices/roomSlice";
 import { ParticipantMedia } from "@/types/participantMedia";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AspectRatio, Box, Text } from "@mantine/core";
 import { createLogger } from "@/core/logging/logger";
 
@@ -13,6 +13,8 @@ interface ParticipantMediaMeshProp {
     localParticipantId: string;
     videoSize: number;
     videoOpacity: number;
+    /** The local push-to-talk mic is open (the self tile has no audio track). */
+    isLocalTalking?: boolean;
 }
 
 interface ParticipantMediaTileProps {
@@ -21,6 +23,7 @@ interface ParticipantMediaTileProps {
     isLocalParticipant: boolean;
     videoSize: number;
     videoOpacity: number;
+    isLocalTalking: boolean;
 
     onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
     onPointerMove: (event: React.PointerEvent<HTMLDivElement>) => void;
@@ -33,12 +36,95 @@ interface MeshPosition {
     y: number;
 }
 
+/**
+ * True while the stream's audio is above a speaking threshold. Uses a Web
+ * Audio analyser on the remote stream (never the local mic), sampled ~8x/s.
+ * An AudioContext created before any user gesture starts suspended, so it is
+ * resumed on the first pointer or key press.
+ */
+function useIsSpeaking(stream: MediaStream | null, enabled: boolean): boolean {
+    const [isSpeaking, setIsSpeaking] = useState(false);
+
+    useEffect(() => {
+        if (!enabled || !stream || stream.getAudioTracks().length === 0) {
+            return;
+        }
+
+        const AudioContextCtor =
+            window.AudioContext ??
+            (window as unknown as { webkitAudioContext?: typeof AudioContext })
+                .webkitAudioContext;
+
+        if (!AudioContextCtor) {
+            return;
+        }
+
+        const context = new AudioContextCtor();
+        const source = context.createMediaStreamSource(stream);
+        const analyser = context.createAnalyser();
+        analyser.fftSize = 512;
+        source.connect(analyser);
+
+        const samples = new Uint8Array(analyser.fftSize);
+        let speaking = false;
+        let quietTicks = 0;
+
+        const intervalId = window.setInterval(() => {
+            analyser.getByteTimeDomainData(samples);
+
+            let sumSquares = 0;
+            for (const sample of samples) {
+                const centered = (sample - 128) / 128;
+                sumSquares += centered * centered;
+            }
+            const rms = Math.sqrt(sumSquares / samples.length);
+
+            // Hysteresis: light up immediately, fade after ~0.5 s of quiet.
+            if (rms > 0.02) {
+                quietTicks = 0;
+                if (!speaking) {
+                    speaking = true;
+                    setIsSpeaking(true);
+                }
+            } else if (speaking && ++quietTicks > 4) {
+                speaking = false;
+                setIsSpeaking(false);
+            }
+        }, 120);
+
+        const resume = () => void context.resume();
+        window.addEventListener("pointerdown", resume, { once: true });
+        window.addEventListener("keydown", resume, { once: true });
+
+        return () => {
+            window.clearInterval(intervalId);
+            window.removeEventListener("pointerdown", resume);
+            window.removeEventListener("keydown", resume);
+            source.disconnect();
+            void context.close();
+            setIsSpeaking(false);
+        };
+    }, [stream, enabled]);
+
+    return isSpeaking;
+}
+
+function initialsOf(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+
+    if (parts.length === 0) return "?";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 function ParticipantMediaTile({
     member,
     media,
     isLocalParticipant,
     videoSize,
     videoOpacity,
+    isLocalTalking,
     onPointerDown,
     onPointerMove,
     onPointerUp,
@@ -119,9 +205,19 @@ function ParticipantMediaTile({
     const hasVideo = media?.hasVideo === true;
     const hasAudio = media?.hasAudio === true;
 
+    const isRemoteSpeaking = useIsSpeaking(
+        media?.stream ?? null,
+        hasAudio && !isLocalParticipant,
+    );
+    const isSpeaking = isLocalParticipant ? isLocalTalking : isRemoteSpeaking;
+
     return (
         <Box
-            className="rounded-lg overflow-hidden border border-white/10 bg-zinc-950 shadow-xl pointer-events-auto transition-all duration-200 relative cursor-grab active:cursor-grabbing"
+            className={`rounded-xl overflow-hidden border bg-zinc-950 pointer-events-auto transition-[box-shadow,border-color,width,height] duration-200 relative cursor-grab active:cursor-grabbing ${
+                isSpeaking
+                    ? "border-teal-300 shadow-[0_0_0_2px_rgba(45,212,191,0.9),0_0_24px_rgba(45,212,191,0.55)]"
+                    : "border-white/10 shadow-xl shadow-black/50"
+            }`}
             style={{
                 width: videoSize,
                 height: (videoSize * 3) / 4,
@@ -144,30 +240,46 @@ function ParticipantMediaTile({
                             className="w-full h-full object-cover"
                         />
                     ) : (
-                        <Box className="w-full h-full flex items-center justify-center">
-                            <Text size="10px" c="dimmed" className="font-mono">
-                                {member.username}
-                            </Text>
+                        // Camera off: initials avatar on a soft brand gradient.
+                        <Box className="w-full h-full flex items-center justify-center bg-linear-to-br from-teal-900/60 via-zinc-900 to-sky-950/60">
+                            <span
+                                className="flex items-center justify-center rounded-full bg-teal-400/15 font-bold text-teal-200 ring-1 ring-teal-300/30"
+                                style={{
+                                    width: videoSize * 0.36,
+                                    height: videoSize * 0.36,
+                                    fontSize: videoSize * 0.13,
+                                }}
+                            >
+                                {initialsOf(member.username)}
+                            </span>
                         </Box>
                     )}
 
-                    <Box className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-black/50">
-                        <Text size="10px" c="white" className="font-mono">
-                            {member.username}
-                            {isLocalParticipant ? " (You)" : ""}
-                        </Text>
-
-                        {!hasVideo && hasAudio && (
-                            <Text size="9px" c="dimmed" className="font-mono">
-                                Audio only
+                    <Box className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center gap-1">
+                        <span className="flex min-w-0 items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 backdrop-blur-sm">
+                            {isSpeaking && (
+                                <span
+                                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-teal-300"
+                                    aria-label="Speaking"
+                                />
+                            )}
+                            <Text
+                                size="10px"
+                                fw={600}
+                                c="white"
+                                truncate
+                                title={
+                                    !hasVideo && !hasAudio
+                                        ? "Camera and microphone off"
+                                        : !hasVideo && hasAudio
+                                          ? "Audio only"
+                                          : undefined
+                                }
+                            >
+                                {member.username}
+                                {isLocalParticipant ? " (You)" : ""}
                             </Text>
-                        )}
-
-                        {!hasVideo && !hasAudio && (
-                            <Text size="9px" c="dimmed" className="font-mono">
-                                Camera and microphone off
-                            </Text>
-                        )}
+                        </span>
                     </Box>
 
                     {hasAudio && (
@@ -191,19 +303,39 @@ export default function ParticipantMediaMesh({
     localParticipantId,
     videoSize,
     videoOpacity,
+    isLocalTalking = false,
 }: ParticipantMediaMeshProp) {
     const mediaByParticipantId = new Map(
         participantMedia.map((media) => [media.participantId, media]),
     );
+
+    // Self preview: camera only (never play our own mic back). Built once per
+    // localStream; creating it on every render would give the tile a new
+    // stream on each slider move or room update and reload the <video>.
+    const localPreviewMedia = useMemo<ParticipantMedia | null>(() => {
+        const videoTrack = localStream?.getVideoTracks()[0];
+
+        if (!videoTrack) {
+            return null;
+        }
+
+        return {
+            participantId: localParticipantId,
+            stream: new MediaStream([videoTrack]),
+            hasAudio: false,
+            hasVideo: true,
+        };
+    }, [localStream, localParticipantId]);
 
     /**
      * The entire participant mesh is treated as one floating overlay.
      *
      * x/y represent the mesh's position relative to the viewport.
      */
+    // Below the top bar row (Back, settings, room pill), over the film's corner.
     const [position, setPosition] = useState<MeshPosition>({
-        x: 24,
-        y: 24,
+        x: 40,
+        y: 92,
     });
 
     const dragStateRef = useRef<{
@@ -269,23 +401,11 @@ export default function ParticipantMediaMesh({
                 const isLocalParticipant =
                     member.participantId === localParticipantId;
 
-                let media =
-                    mediaByParticipantId.get(member.participantId) ?? null;
-
-                if (isLocalParticipant && localStream) {
-                    const videoTrack = localStream.getVideoTracks()[0];
-
-                    if (videoTrack) {
-                        const cameraOnlyStream = new MediaStream([videoTrack]);
-
-                        media = {
-                            participantId: localParticipantId,
-                            stream: cameraOnlyStream,
-                            hasAudio: false,
-                            hasVideo: true,
-                        };
-                    }
-                }
+                const media =
+                    isLocalParticipant && localPreviewMedia
+                        ? localPreviewMedia
+                        : (mediaByParticipantId.get(member.participantId) ??
+                          null);
 
                 return (
                     <ParticipantMediaTile
@@ -295,6 +415,7 @@ export default function ParticipantMediaMesh({
                         isLocalParticipant={isLocalParticipant}
                         videoSize={videoSize}
                         videoOpacity={videoOpacity}
+                        isLocalTalking={isLocalTalking}
                         onPointerDown={handleDragStart}
                         onPointerMove={handleDragMove}
                         onPointerUp={handleDragEnd}

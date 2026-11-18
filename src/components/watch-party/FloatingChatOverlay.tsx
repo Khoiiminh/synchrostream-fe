@@ -19,6 +19,7 @@ import { watchPartyGatewayEngine } from "@/store";
 import type { ChatMessageBroadcastPayload } from "@/types/watchParty";
 
 interface FloatingMessage {
+    kind: "self" | "other" | "system";
     username: string;
     text: string;
 }
@@ -35,10 +36,15 @@ export default function FloatingChatOverlay() {
 
     const [messages, setMessages] = useState<FloatingMessage[]>([
         {
+            kind: "system",
             username: "System",
-            text: "Connected to video stream layout overhead layer.",
+            text: "You joined the room. Say hi 👋",
         },
     ]);
+
+    // Messages from others that arrived while the panel was minimized.
+    const [unreadCount, setUnreadCount] = useState(0);
+    const isMinimizedRef = useRef(false);
 
     const [input, setInput] = useState("");
 
@@ -71,13 +77,13 @@ export default function FloatingChatOverlay() {
         }
 
         const width = 320;
-        const height = 360;
         const right = 24;
-        const bottom = 24;
 
+        // Top-right, under the top bar: clear of the player's control bar
+        // (quality, fullscreen) along the bottom.
         return {
             x: Math.max(0, window.innerWidth - width - right),
-            y: Math.max(0, window.innerHeight - height - bottom),
+            y: 92,
         };
     });
 
@@ -86,10 +92,15 @@ export default function FloatingChatOverlay() {
             setMessages((prev) => [
                 ...prev,
                 {
+                    kind: "other",
                     username: data.username,
                     text: data.message,
                 },
             ]);
+
+            if (isMinimizedRef.current) {
+                setUnreadCount((count) => count + 1);
+            }
         };
 
         const removeChatListener = watchPartyGatewayEngine.on({
@@ -126,6 +137,7 @@ export default function FloatingChatOverlay() {
         setMessages((prev) => [
             ...prev,
             {
+                kind: "self",
                 username: "Me",
                 text: cleanMessage,
             },
@@ -189,21 +201,18 @@ export default function FloatingChatOverlay() {
             return;
         }
 
-        setIsMinimized((previous) => !previous);
+        const next = !isMinimized;
+        isMinimizedRef.current = next;
+        setIsMinimized(next);
+
+        if (!next) {
+            setUnreadCount(0);
+        }
     };
 
     return (
         <Box
-            className="
-        fixed
-        z-40
-        flex
-        flex-col
-        gap-2
-        transition-[width,height]
-        duration-200
-        ease-in-out
-      "
+            className="fixed z-40 flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/55 shadow-2xl shadow-black/50 backdrop-blur-xl transition-[width,height] duration-200 ease-in-out"
             style={{
                 left: position.x,
                 top: position.y,
@@ -216,19 +225,8 @@ export default function FloatingChatOverlay() {
              */}
             <Group
                 justify="space-between"
-                className="
-          bg-black/50
-          backdrop-blur-md
-          border
-          border-white/10
-          rounded-md
-          px-2
-          py-1.5
-          shadow-lg
-          cursor-grab
-          active:cursor-grabbing
-          select-none
-        "
+                wrap="nowrap"
+                className="cursor-grab select-none border-b border-white/5 px-3 py-2 active:cursor-grabbing"
                 onPointerDown={handleDragStart}
                 onPointerMove={handleDragMove}
                 onPointerUp={handleDragEnd}
@@ -238,21 +236,22 @@ export default function FloatingChatOverlay() {
                     touchAction: "none",
                 }}
             >
-                <Group gap="xs">
+                <Group gap="xs" wrap="nowrap">
                     <MessageSquare size={14} className="text-teal-400" />
 
                     <Text
                         size="xs"
                         fw={700}
-                        className="
-              text-zinc-200
-              uppercase
-              tracking-wide
-              whitespace-nowrap
-            "
+                        className="whitespace-nowrap uppercase tracking-wide text-zinc-200"
                     >
-                        Text Chat
+                        Chat
                     </Text>
+
+                    {isMinimized && unreadCount > 0 && (
+                        <span className="rounded-full bg-teal-400 px-1.5 text-[10px] font-bold leading-4 text-zinc-950">
+                            {unreadCount}
+                        </span>
+                    )}
                 </Group>
 
                 <ActionIcon
@@ -277,87 +276,103 @@ export default function FloatingChatOverlay() {
              * Completely removed visually when minimized.
              */}
             <div
-                className={`
-          flex
-          flex-col
-          gap-2
-          flex-1
-          min-h-0
-          transition-all
-          duration-300
-          ease-in-out
-          overflow-hidden
-          ${
-              isMinimized
-                  ? "max-h-0 opacity-0 pointer-events-none"
-                  : "max-h-90 opacity-100"
-          }
-        `}
+                className={`flex min-h-0 flex-1 flex-col gap-2 overflow-hidden transition-all duration-300 ease-in-out ${
+                    isMinimized
+                        ? "max-h-0 opacity-0 pointer-events-none"
+                        : "max-h-90 opacity-100 pb-2"
+                }`}
             >
                 <ScrollArea
                     style={{ flex: 1 }}
                     viewportRef={scrollRef}
-                    className="px-2"
+                    className="px-3"
                 >
-                    <Stack gap="xs" justify="end" className="min-h-full">
-                        {messages.map((msg, index) => (
-                            <Box
-                                key={index}
-                                className="
-                  bg-black/40
-                  backdrop-blur-xs
-                  p-2
-                  rounded-md
-                  border
-                  border-white/5
-                  self-start
-                  max-w-[90%]
-                "
-                            >
-                                <Text
-                                    size="11px"
-                                    fw={700}
-                                    color="teal.4"
-                                    mb={1}
-                                >
-                                    {msg.username}
-                                </Text>
+                    <Stack gap={8} justify="end" className="min-h-full py-2">
+                        {messages.map((msg, index) => {
+                            if (msg.kind === "system") {
+                                return (
+                                    <Text
+                                        key={index}
+                                        size="11px"
+                                        ta="center"
+                                        className="px-4 text-zinc-500"
+                                    >
+                                        {msg.text}
+                                    </Text>
+                                );
+                            }
 
-                                <Text
-                                    size="xs"
-                                    color="zinc.1"
-                                    className="
-                    wrap-break-word
-                    leading-relaxed
-                  "
+                            if (msg.kind === "self") {
+                                return (
+                                    <Box
+                                        key={index}
+                                        className="max-w-[80%] self-end rounded-2xl rounded-br-md bg-teal-500/90 px-3 py-1.5 text-zinc-950 shadow-md"
+                                    >
+                                        <Text
+                                            size="xs"
+                                            fw={500}
+                                            className="wrap-break-word leading-relaxed"
+                                        >
+                                            {msg.text}
+                                        </Text>
+                                    </Box>
+                                );
+                            }
+
+                            return (
+                                <Group
+                                    key={index}
+                                    gap={6}
+                                    align="flex-end"
+                                    wrap="nowrap"
+                                    className="max-w-[88%] self-start"
                                 >
-                                    {msg.text}
-                                </Text>
-                            </Box>
-                        ))}
+                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-500/20 text-[10px] font-bold text-sky-200 ring-1 ring-sky-300/20">
+                                        {msg.username.slice(0, 1).toUpperCase()}
+                                    </span>
+                                    <Box className="min-w-0 rounded-2xl rounded-bl-md border border-white/5 bg-white/10 px-3 py-1.5">
+                                        <Text
+                                            size="10px"
+                                            fw={700}
+                                            className="text-sky-300"
+                                        >
+                                            {msg.username}
+                                        </Text>
+                                        <Text
+                                            size="xs"
+                                            className="wrap-break-word leading-relaxed text-zinc-100"
+                                        >
+                                            {msg.text}
+                                        </Text>
+                                    </Box>
+                                </Group>
+                            );
+                        })}
                     </Stack>
                 </ScrollArea>
 
-                <form onSubmit={handleSend} className="px-2">
+                <form onSubmit={handleSend} className="px-3">
                     <TextInput
-                        placeholder="Type message..."
+                        placeholder="Say something…"
+                        radius="xl"
                         value={input}
                         onChange={(e) => setInput(e.currentTarget.value)}
                         rightSection={
                             <ActionIcon
                                 type="submit"
-                                variant="transparent"
+                                variant="filled"
                                 color="teal"
+                                radius="xl"
+                                size="md"
                                 disabled={!input.trim()}
                             >
-                                <Send size={14} />
+                                <Send size={13} />
                             </ActionIcon>
                         }
                         styles={{
                             input: {
-                                backgroundColor: "rgba(15, 15, 17, 0.7)",
-                                backdropFilter: "blur(8px)",
-                                borderColor: "rgba(39, 39, 42, 0.6)",
+                                backgroundColor: "rgba(255, 255, 255, 0.06)",
+                                borderColor: "rgba(255, 255, 255, 0.08)",
                                 color: "#fff",
                             },
                         }}

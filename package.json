@@ -41,7 +41,7 @@
     "livekit-client": "^2.22.3",
     "lucide-react": "^1.21.0",
     "mediasoup-client": "^3.23.2",
-    "next": "^16.4.3",
+    "next": "^16.4.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-redux": "^9.3.0",
