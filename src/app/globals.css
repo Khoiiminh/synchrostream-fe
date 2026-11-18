@@ -35,7 +35,163 @@
 }
 
 body {
-    background: var(--background);
     color: var(--foreground);
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: Inter, Arial, Helvetica, sans-serif;
+    /* Deep navy base with two soft brand glows instead of flat black. */
+    background-color: #070b12;
+    background-image:
+        radial-gradient(
+            60rem 40rem at 10% -10%,
+            rgba(20, 184, 166, 0.1),
+            transparent 60%
+        ),
+        radial-gradient(
+            50rem 35rem at 100% 0%,
+            rgba(59, 130, 246, 0.08),
+            transparent 60%
+        );
+    background-attachment: fixed;
+}
+
+/* Brand gradient text (logo, hero headings). */
+.text-brand-gradient {
+    background-image: linear-gradient(
+        90deg,
+        #5eead4 0%,
+        #22d3ee 50%,
+        #60a5fa 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Catalog poster cards: lift + teal glow on hover, overlay reveal. */
+.poster-card {
+    transition:
+        transform 220ms ease,
+        box-shadow 220ms ease,
+        border-color 220ms ease;
+}
+.poster-card:hover,
+.poster-card:focus-within {
+    transform: translateY(-6px) scale(1.02);
+    border-color: rgba(45, 212, 191, 0.55);
+    box-shadow:
+        0 18px 40px -12px rgba(0, 0, 0, 0.7),
+        0 0 32px -6px rgba(45, 212, 191, 0.35);
+}
+.poster-card .poster-img {
+    transition: transform 400ms ease;
+}
+.poster-card:hover .poster-img {
+    transform: scale(1.06);
+}
+.poster-card .poster-overlay {
+    opacity: 0;
+    transition: opacity 220ms ease;
+}
+.poster-card:hover .poster-overlay,
+.poster-card:focus-within .poster-overlay {
+    opacity: 1;
+}
+
+@keyframes fade-rise {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+.animate-fade-rise {
+    animation: fade-rise 420ms ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .poster-card,
+    .poster-card .poster-img,
+    .animate-fade-rise {
+        transition: none;
+        animation: none;
+    }
+}
+
+/* Touch screens have no hover: keep the card action visible. */
+@media (hover: none) {
+    .poster-card .poster-overlay {
+        opacity: 1;
+        background: linear-gradient(
+            to top,
+            rgba(0, 0, 0, 0.85),
+            transparent 45%
+        );
+    }
+    .poster-card .poster-play {
+        display: none;
+    }
+}
+
+/* Player seek bar grows on hover for easier scrubbing. */
+.seek-bar:hover {
+    --seek-h: 7px;
+}
+
+/* ---------- Modals (all Mantine <Modal>s, wired in layout.tsx theme) ---------- */
+.ss-modal-content {
+    background:
+        radial-gradient(
+            28rem 14rem at 0% 0%,
+            rgba(45, 212, 191, 0.12),
+            transparent 70%
+        ),
+        rgba(12, 17, 26, 0.92) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+        0 30px 80px -20px rgba(0, 0, 0, 0.8),
+        0 0 0 1px rgba(45, 212, 191, 0.06);
+    backdrop-filter: blur(16px);
+}
+.ss-modal-header {
+    background: transparent !important;
+    padding: 20px 20px 4px !important;
+}
+.ss-modal-body {
+    padding: 12px 20px 20px !important;
+}
+.ss-modal-close {
+    color: #a1a1aa;
+    border-radius: 999px;
+}
+.ss-modal-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+.ss-modal-content .ss-input {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    height: 44px;
+    transition:
+        border-color 150ms ease,
+        box-shadow 150ms ease;
+}
+.ss-modal-content .ss-input:focus,
+.ss-modal-content .ss-input:focus-within {
+    border-color: rgba(45, 212, 191, 0.7);
+    box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.15);
+}
+.ss-modal-content .ss-input::placeholder {
+    color: #52525b;
+}
+.ss-modal-content .mantine-InputWrapper-label {
+    color: #e4e4e7;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+.ss-modal-content .mantine-InputWrapper-description {
+    color: #71717a;
+    margin-bottom: 6px;
 }

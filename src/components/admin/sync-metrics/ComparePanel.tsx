@@ -16,7 +16,6 @@ import {
 } from "@mantine/core";
 import { IconChevronDown, IconDownload } from "@tabler/icons-react";
 import {
-    AnalysisResult,
     analyzeRun,
     buildDataset,
     DEFAULT_ANALYSIS_OPTIONS,
@@ -30,9 +29,9 @@ import {
     summaryCsv,
     summaryLatex,
     summaryMarkdown,
-} from "./exportUtils";
-import { fmtMetric, RUN_COLORS } from "./format";
-import { syncMetricsClient } from "./syncMetricsClient";
+} from "@/utils/syncMetricsExport";
+import { fmtMetric, RUN_COLORS } from "@/utils/syncMetricsFormat";
+import { syncMetricsClient } from "@/store/services/syncMetricsClient";
 
 export function ComparePanel({
     runIds,
@@ -359,5 +358,3 @@ export function ComparePanel({
         </Stack>
     );
 }
-
-export type { AnalysisResult };

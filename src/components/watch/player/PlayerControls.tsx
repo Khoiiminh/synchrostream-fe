@@ -65,10 +65,10 @@ export default function PlayerControls({
 }: PlayerControlsProps) {
     return (
         <div className="absolute bottom-0 left-0 right-0 w-full p-4 bg-linear-to-t from-black/95 via-black/60 to-transparent transition-opacity duration-300 z-30">
-            <div className="w-full px-1 mb-2">
+            <div className="seek-bar w-full px-1 mb-2">
                 <Slider
                     size="sm"
-                    color="blue"
+                    color="teal"
                     label={(value) => {
                         const hours = Math.floor(value / 3600);
                         const minutes = Math.floor((value % 3600) / 60);
@@ -90,7 +90,11 @@ export default function PlayerControls({
                         },
                         track: {
                             cursor: "pointer",
-                            height: 4,
+                            height: "var(--seek-h, 4px)",
+                            transition: "height 120ms ease",
+                        },
+                        bar: {
+                            boxShadow: "0 0 10px rgba(45, 212, 191, 0.6)",
                         },
                         thumb: {
                             transition: "transform 0.1s ease",
@@ -117,7 +121,7 @@ export default function PlayerControls({
                             onClick={() => {
                                 void controller?.play();
                             }}
-                            className="text-blue-400 hover:text-blue-300 transition-colors focus:outline-hidden cursor-pointer flex items-center"
+                            className="text-teal-300 hover:text-teal-200 transition-colors focus:outline-hidden cursor-pointer flex items-center"
                             title="Play"
                         >
                             <Play size={20} fill="currentColor" />
@@ -144,7 +148,7 @@ export default function PlayerControls({
 
                         <Slider
                             size="xs"
-                            color="blue"
+                            color="teal"
                             label={null}
                             min={0}
                             max={1}

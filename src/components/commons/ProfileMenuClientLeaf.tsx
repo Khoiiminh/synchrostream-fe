@@ -66,7 +66,7 @@ export default function ProfileMenuClientLeaf() {
             <Menu.Target>
                 <UnstyledButton className="p-1 rounded-full hover:bg-zinc-800 transition-colors">
                     <Group gap="xs">
-                        <Avatar radius="xl" color="blue">
+                        <Avatar radius="xl" color="teal">
                             {/* Dynamic substring initials calculation fallback */}
                             {user?.username
                                 ? user.username.substring(0, 2).toUpperCase()

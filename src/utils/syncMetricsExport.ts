@@ -2,7 +2,7 @@ import {
     AnalysisResult,
     keyMetrics,
 } from "@/diagnostics/analysis/syncRunAnalysis";
-import { fmtMetric } from "./format";
+import { fmtMetric } from "@/utils/syncMetricsFormat";
 
 export function downloadText(
     content: string,

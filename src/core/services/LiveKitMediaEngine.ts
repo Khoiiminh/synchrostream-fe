@@ -1,4 +1,4 @@
-import { ParticipantMedia } from "../types/ParticipantMedia.type";
+import { ParticipantMedia } from "@/types/participantMedia";
 import {
     AudioCaptureOptions,
     LocalTrack,
@@ -6,6 +6,7 @@ import {
     Room,
     RoomEvent,
     Track,
+    TrackEvent,
 } from "livekit-client";
 import { createLogger } from "@/core/logging/logger";
 
@@ -63,6 +64,18 @@ export class LiveKitMediaEngine {
     private room: Room | null = null;
     private config: LiveKitMediaEngineConfig | null = null;
     private localStream: MediaStream | null = null;
+    /*
+     * The published local LiveKit tracks (camera). LiveKit may replace a
+     * track's underlying MediaStreamTrack at any time: when the camera track
+     * ends unexpectedly (another app or browser profile grabs the webcam, a
+     * driver hiccup, a device change) it calls restartTrack(), which opens the
+     * camera again, swaps the new track into the published sender and emits
+     * TrackEvent.Restarted. Remote participants follow the swap automatically;
+     * localStream must be rebuilt from track.mediaStreamTrack or the self
+     * preview keeps showing the old, stopped track (a black tile).
+     */
+    private localTracks: LocalTrack[] = [];
+    private localTrackListenerCleanups: Array<() => void> = [];
     private readonly participantStreams = new Map<string, MediaStream>();
     private readonly trackRecords = new Map<string, ParticipantTrackRecord>();
     private readonly mediaListeners = new Set<MediaListener>();
@@ -312,11 +325,9 @@ export class LiveKitMediaEngine {
                 localTracks.push(createdTrack);
             }
 
-            const localStream = new MediaStream();
+            this.trackLocalTracks(localTracks);
 
-            for (const localTrack of localTracks) {
-                localStream.addTrack(localTrack.mediaStreamTrack);
-            }
+            const localStream = this.buildLocalStream();
 
             this.localStream = localStream;
 
@@ -357,6 +368,8 @@ export class LiveKitMediaEngine {
         } catch (error) {
             this.isProducingLocalMedia = false;
 
+            this.untrackLocalTracks();
+
             if (this.localStream) {
                 this.localStream.getTracks().forEach((track) => {
                     track.stop();
@@ -373,6 +386,66 @@ export class LiveKitMediaEngine {
 
     public async disconnect(): Promise<void> {
         await this.cleanup();
+    }
+
+    /** Follows LiveKit's track replacement so the self preview stays live. */
+    private trackLocalTracks(localTracks: LocalTrack[]): void {
+        this.untrackLocalTracks();
+
+        this.localTracks = localTracks;
+
+        for (const localTrack of localTracks) {
+            const handleRestarted = () => {
+                log.debug("Local track restarted by LiveKit", {
+                    kind: localTrack.kind,
+                    trackId: localTrack.mediaStreamTrack?.id,
+                });
+
+                this.refreshLocalStream();
+            };
+
+            localTrack.on(TrackEvent.Restarted, handleRestarted);
+
+            this.localTrackListenerCleanups.push(() => {
+                localTrack.off(TrackEvent.Restarted, handleRestarted);
+            });
+        }
+    }
+
+    private untrackLocalTracks(): void {
+        this.localTrackListenerCleanups.forEach((removeListener) =>
+            removeListener(),
+        );
+
+        this.localTrackListenerCleanups = [];
+        this.localTracks = [];
+    }
+
+    /** A fresh MediaStream holding each local track's CURRENT MediaStreamTrack. */
+    private buildLocalStream(): MediaStream {
+        const stream = new MediaStream();
+
+        for (const localTrack of this.localTracks) {
+            const mediaTrack = localTrack.mediaStreamTrack;
+
+            if (mediaTrack && mediaTrack.readyState === "live") {
+                stream.addTrack(mediaTrack);
+            }
+        }
+
+        return stream;
+    }
+
+    private refreshLocalStream(): void {
+        if (this.isCleaningUp || !this.localStream) {
+            return;
+        }
+
+        // A new MediaStream object (not mutating the old one) so React sees
+        // a changed prop and the preview <video> is re-attached.
+        this.localStream = this.buildLocalStream();
+
+        this.notifyLocalStreamUpdate();
     }
 
     private registerRoomEvents(room: Room): void {
@@ -654,6 +727,8 @@ export class LiveKitMediaEngine {
 
         this.trackRecords.clear();
         this.participantStreams.clear();
+
+        this.untrackLocalTracks();
 
         if (this.localStream) {
             this.localStream.getTracks().forEach((track) => {

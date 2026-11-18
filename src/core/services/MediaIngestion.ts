@@ -14,7 +14,7 @@ import {
     UploadPartResponseData,
     CompleteUploadPayload,
     CompleteUploadResponseData,
-} from "../types/ingestion";
+} from "@/types/ingestion";
 
 interface ApiError {
     data?: { message?: string };

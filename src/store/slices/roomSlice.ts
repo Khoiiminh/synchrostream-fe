@@ -17,7 +17,6 @@ export interface PlaybackStateSnapshot {
 export interface RoomSnapshotPayload {
     roomId: string;
     roomCode: string;
-    passwordPlain: string;
     ownerId: string;
     movieId: string;
     /** Null until the room's LiveKit session is ACTIVE; pushed later via room:state_update. */

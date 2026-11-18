@@ -1,6 +1,6 @@
 "use client";
 
-import { ApiErrorResponse } from "@/components/error/api.error.response";
+import { ApiErrorResponse } from "@/types/api";
 import { useConfirmPasswordResetMutation } from "@/store/services/authApi";
 import {
     Alert,
