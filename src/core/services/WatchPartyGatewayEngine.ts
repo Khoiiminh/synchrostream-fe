@@ -11,6 +11,11 @@ import {
     PlaybackStateSnapshot,
 } from "@/store/slices/roomSlice";
 import { createLogger } from "@/core/logging/logger";
+import type {
+    ChatHistoryPayload,
+    ChatMessageBroadcastPayload,
+    ChatSendAck,
+} from "@/types/watchParty";
 
 /** RoomErrorDetail codes for a session that ended for good. */
 export const ROOM_CLOSED_CODE = "ROOM_CLOSED";
@@ -70,20 +75,14 @@ const SERVER_DISCONNECT_RETRY_DELAYS_MS = [
     1000, 2000, 4000, 5000, 5000, 5000, 5000, 5000,
 ];
 
-interface ChatMessagePayload {
-    userId: string;
-    username: string;
-    message: string;
-    timestamp: number;
-}
-
 interface GatewayEventMap {
     "room:state_update": RoomSnapshotPayload;
     "room:sync:broadcast": SyncPulseBroadcastPayload;
     "room:member_left": { userId: string };
     "room:error": RoomErrorPayload;
     "room:telemetry:pong": TelemetryPongPayload;
-    "room:chat:broadcast": ChatMessagePayload;
+    "room:chat:broadcast": ChatMessageBroadcastPayload;
+    "room:chat:history": ChatHistoryPayload;
     "room:terminated": { message: string };
     /** This user left the room from another tab/window (voluntary leave). */
     "room:left": { message: string };
@@ -99,10 +98,6 @@ interface GatewayClientEventMap {
         roomCode: string;
         action: "PLAY" | "PAUSE" | "SEEK";
         playhead: number;
-    };
-    "room:chat:message": {
-        roomCode: string;
-        message: string;
     };
     "room:telemetry:ping": {
         roomId: string;
@@ -135,6 +130,10 @@ type GatewayClientEvents = {
         data: { clientSendTime: number },
         ack: (response: ClockSyncAck) => void,
     ) => void;
+    "room:chat:message": (
+        data: { roomCode: string; message: string; clientMessageId: string },
+        ack: (response: unknown) => void,
+    ) => void;
 };
 
 interface ClockSyncAck {
@@ -144,6 +143,49 @@ interface ClockSyncAck {
 }
 
 const CLOCK_PROBE_TIMEOUT_MS = 2000;
+
+/** How long a chat send waits for the server's ack before reporting a timeout. */
+const CHAT_ACK_TIMEOUT_MS = 5000;
+
+/** Reads a chat ack, tolerating the response-wrapping interceptor ({ data: {...} }). */
+function unwrapChatSendAck(raw: unknown): ChatSendAck | null {
+    const reply: unknown =
+        typeof raw === "object" && raw !== null && "data" in raw
+            ? raw.data
+            : raw;
+    if (typeof reply !== "object" || reply === null || !("ok" in reply)) {
+        return null;
+    }
+    if (reply.ok === true) {
+        return {
+            ok: true,
+            id: "id" in reply && typeof reply.id === "string" ? reply.id : null,
+            timestamp:
+                "timestamp" in reply && typeof reply.timestamp === "number"
+                    ? reply.timestamp
+                    : Date.now(),
+        };
+    }
+    const code =
+        "code" in reply &&
+        (reply.code === "NOT_IN_ROOM" ||
+            reply.code === "INVALID_MESSAGE" ||
+            reply.code === "RATE_LIMITED")
+            ? reply.code
+            : "INVALID_MESSAGE";
+    return {
+        ok: false,
+        code,
+        message:
+            "message" in reply && typeof reply.message === "string"
+                ? reply.message
+                : "The message was rejected.",
+        retryAfterMs:
+            "retryAfterMs" in reply && typeof reply.retryAfterMs === "number"
+                ? reply.retryAfterMs
+                : undefined,
+    };
+}
 
 /** Accepts a bare ClockSyncAck or one wrapped as `{ data: ClockSyncAck }`. */
 function unwrapClockSyncAck(
@@ -194,6 +236,16 @@ export class WatchPartyGatewayEngine {
             ? { ...this.lastPlaybackSnapshot }
             : null;
     }
+    /**
+     * Latest room:chat:history for the bound room, so a chat view mounted
+     * after the join still shows the backlog. Cleared when the session ends.
+     */
+    private lastChatHistory: ChatHistoryPayload | null = null;
+
+    public getLastChatHistory(): ChatHistoryPayload | null {
+        return this.lastChatHistory;
+    }
+
     private retryAttempts = 0;
     private retryTimeoutId: NodeJS.Timeout | null = null;
 
@@ -295,8 +347,8 @@ export class WatchPartyGatewayEngine {
 
         this.socket.on("disconnect", this.handleDisconnect);
 
-        // Emits the incoming payload straight through the custom proxy event listener pipeline
-        this.socket.on("room:chat:broadcast", this.handleChatBroadcast);
+        // Chat UI subscribes through on(); the engine only keeps the history backlog.
+        this.socket.on("room:chat:history", this.handleChatHistory);
 
         this.socket.on("room:terminated", this.handleRoomTerminated);
 
@@ -339,6 +391,7 @@ export class WatchPartyGatewayEngine {
         this.lastRoomErrorMessage = message;
         this.lastRoomErrorDetail = { code };
         this.lastPlaybackSnapshot = null;
+        this.lastChatHistory = null;
         this.stopTelemetryHeartbeat();
         this.store.dispatch(clearRoomSession());
         this.store.dispatch(
@@ -488,8 +541,8 @@ export class WatchPartyGatewayEngine {
         // Catch network roundtrip telemetry metrics directly from the server if debugging
     };
 
-    private handleChatBroadcast = (data: ChatMessagePayload) => {
-        // By piping this event through, UI layers using engine.on({ event: 'room:chat:broadcast', callback }) capture this cleanly
+    private handleChatHistory = (data: ChatHistoryPayload): void => {
+        this.lastChatHistory = data;
     };
 
     public emitPlaybackPulse(payload: {
@@ -546,13 +599,42 @@ export class WatchPartyGatewayEngine {
         }
     }
 
-    public emitChatMessage(payload: {
+    /**
+     * Sends one chat message and resolves with the server's verdict. Never
+     * rejects: transport problems resolve as NO_CONNECTION or TIMEOUT.
+     */
+    public async sendChatMessage(payload: {
         roomCode: string;
         message: string;
-    }): void {
-        if (!this.socket) return;
+        clientMessageId: string;
+    }): Promise<ChatSendAck> {
+        const socket = this.socket;
+        if (!socket?.connected) {
+            return {
+                ok: false,
+                code: "NO_CONNECTION",
+                message: "Not connected to the room.",
+            };
+        }
 
-        this.socket.emit("room:chat:message", payload);
+        try {
+            const raw: unknown = await socket
+                .timeout(CHAT_ACK_TIMEOUT_MS)
+                .emitWithAck("room:chat:message", payload);
+            return (
+                unwrapChatSendAck(raw) ?? {
+                    ok: false,
+                    code: "TIMEOUT",
+                    message: "The server did not confirm the message.",
+                }
+            );
+        } catch {
+            return {
+                ok: false,
+                code: "TIMEOUT",
+                message: "The server did not confirm the message.",
+            };
+        }
     }
 
     public onPlaybackSync(
@@ -707,6 +789,7 @@ export class WatchPartyGatewayEngine {
             this.socket.disconnect();
             this.socket = null;
             this.currentUserId = null;
+            this.lastChatHistory = null;
         }, 0);
     }
 
