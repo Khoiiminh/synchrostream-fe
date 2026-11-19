@@ -7,7 +7,6 @@ import { adminMediaApi } from "./services/adminMediaApi";
 import { mediaApi } from "./services/mediaApi";
 import roomReducer from "@/store/slices/roomSlice";
 import { watchPartyApi } from "./services/watchPartyApi";
-import { WatchPartyGatewayEngine } from "@/core/services/WatchPartyGatewayEngine";
 import { mediaSessionApi } from "./services/mediaSessionApi";
 
 /**
@@ -70,5 +69,3 @@ export type RootState = ReturnType<typeof store.getState>;
 // The type of the store's "dispatch" function
 // It allows `useAppDispatch` hook to know exactly which actions (including complex API actions) are valid to send to the store
 export type AppDispatch = typeof store.dispatch;
-
-export const watchPartyGatewayEngine = new WatchPartyGatewayEngine(store);
