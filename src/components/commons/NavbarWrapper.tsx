@@ -9,9 +9,9 @@ import {
     Button,
     Stack,
     TextInput,
-    PasswordInput,
     Modal,
 } from "@mantine/core";
+import { RoomPasswordInput } from "@/components/commons/RoomPasswordInput";
 import ProfileMenuClientLeaf from "./ProfileMenuClientLeaf";
 import { useRouter } from "next/navigation";
 import { Hash, KeyRound, LogIn, Users } from "lucide-react";
@@ -174,12 +174,11 @@ export default function NavbarWrapper({ children }: NavbarWrapperProps) {
                             }}
                         />
 
-                        <PasswordInput
+                        <RoomPasswordInput
                             label="Room password"
                             placeholder="Enter the room password"
                             required
                             maxLength={ROOM_PASSWORD_MAX_LENGTH}
-                            autoComplete="off"
                             leftSection={<KeyRound size={16} />}
                             value={targetPassword}
                             onChange={(e) =>
