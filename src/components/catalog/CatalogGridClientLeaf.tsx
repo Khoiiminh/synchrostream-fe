@@ -10,8 +10,8 @@ import {
     Center,
     Modal,
     Stack,
-    PasswordInput,
 } from "@mantine/core";
+import { RoomPasswordInput } from "@/components/commons/RoomPasswordInput";
 import { useGetMediaCatalogQuery } from "../../store/services/mediaApi";
 import { useRouter } from "next/navigation";
 import { LoadingPage } from "../commons/LoadingPage";
@@ -381,7 +381,7 @@ export default function CatalogGridClientLeaf() {
                                 </Stack>
                             </Alert>
                         )}
-                        <PasswordInput
+                        <RoomPasswordInput
                             label="Room password"
                             description={`Guests need it to join. ${ROOM_PASSWORD_MIN_LENGTH}–${ROOM_PASSWORD_MAX_LENGTH} characters.`}
                             placeholder="Choose a room password"
@@ -389,7 +389,6 @@ export default function CatalogGridClientLeaf() {
                             required
                             data-autofocus
                             maxLength={ROOM_PASSWORD_MAX_LENGTH}
-                            autoComplete="new-password"
                             value={roomPassword}
                             onChange={(e) => {
                                 setRoomPassword(e.currentTarget.value);
