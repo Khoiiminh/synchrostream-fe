@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import {
     Stack,
@@ -15,18 +15,35 @@ import {
 import { Send, MessageSquare, ChevronUp, ChevronDown } from "lucide-react";
 
 import { useParams } from "next/navigation";
-import { watchPartyGatewayEngine } from "@/store";
-import type { ChatMessageBroadcastPayload } from "@/types/watchParty";
-
-interface FloatingMessage {
-    kind: "self" | "other" | "system";
-    username: string;
-    text: string;
-}
+import { useEngine } from "@/context/EngineContext";
+import { useAppSelector } from "@/store/hooks";
+import {
+    CHAT_MESSAGE_MAX_LENGTH,
+    type ChatHistoryPayload,
+    type ChatMessageBroadcastPayload,
+} from "@/types/watchParty";
+import {
+    appendPending,
+    applyBroadcast,
+    applySendResult,
+    createClientMessageId,
+    mergeHistory,
+    type ChatEntry,
+} from "@/core/chat/chatTimeline";
 
 interface PanelPosition {
     x: number;
     y: number;
+}
+
+/** Show the remaining-characters counter once this close to the limit. */
+const COUNTER_THRESHOLD = 50;
+
+function formatTime(timestamp: number): string {
+    return new Date(timestamp).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+    });
 }
 
 export default function FloatingChatOverlay() {
@@ -34,13 +51,22 @@ export default function FloatingChatOverlay() {
 
     const roomCode = (params?.roomCode as string) || "";
 
-    const [messages, setMessages] = useState<FloatingMessage[]>([
-        {
-            kind: "system",
-            username: "System",
-            text: "You joined the room. Say hi 👋",
-        },
-    ]);
+    // The same engine instance the party page connects; a separate one never has a socket.
+    const { gatewayEngine } = useEngine();
+
+    const selfUserId = useAppSelector((state) => state.auth.userId);
+    const selfUsername = useAppSelector((state) => state.auth.username);
+
+    // Read inside socket callbacks, which are registered once.
+    const selfUserIdRef = useRef(selfUserId);
+    useEffect(() => {
+        selfUserIdRef.current = selfUserId;
+    }, [selfUserId]);
+
+    const [messages, setMessages] = useState<ChatEntry[]>([]);
+
+    // Room generation the timeline belongs to; a different one starts it over.
+    const historyRoomIdRef = useRef<string | null>(null);
 
     // Messages from others that arrived while the panel was minimized.
     const [unreadCount, setUnreadCount] = useState(0);
@@ -88,30 +114,54 @@ export default function FloatingChatOverlay() {
     });
 
     useEffect(() => {
-        const handleIncomingMessage = (data: ChatMessageBroadcastPayload) => {
-            setMessages((prev) => [
-                ...prev,
-                {
-                    kind: "other",
-                    username: data.username,
-                    text: data.message,
-                },
-            ]);
+        const handleHistory = (data: ChatHistoryPayload) => {
+            const isNewRoom =
+                historyRoomIdRef.current !== null &&
+                historyRoomIdRef.current !== data.roomId;
+            historyRoomIdRef.current = data.roomId;
 
-            if (isMinimizedRef.current) {
+            setMessages((prev) =>
+                mergeHistory(
+                    isNewRoom ? [] : prev,
+                    data.messages,
+                    selfUserIdRef.current,
+                ),
+            );
+        };
+
+        const handleIncomingMessage = (data: ChatMessageBroadcastPayload) => {
+            setMessages((prev) =>
+                applyBroadcast(prev, data, selfUserIdRef.current),
+            );
+
+            const isOwnMessage =
+                data.userId !== null && data.userId === selfUserIdRef.current;
+            if (isMinimizedRef.current && !isOwnMessage) {
                 setUnreadCount((count) => count + 1);
             }
         };
 
-        const removeChatListener = watchPartyGatewayEngine.on({
+        // History may have arrived before this view mounted.
+        const backlog = gatewayEngine.getLastChatHistory();
+        if (backlog) {
+            handleHistory(backlog);
+        }
+
+        const removeHistoryListener = gatewayEngine.on({
+            event: "room:chat:history",
+            callback: handleHistory,
+        });
+
+        const removeChatListener = gatewayEngine.on({
             event: "room:chat:broadcast",
             callback: handleIncomingMessage,
         });
 
         return () => {
+            removeHistoryListener();
             removeChatListener();
         };
-    }, []);
+    }, [gatewayEngine]);
 
     useEffect(() => {
         scrollRef.current?.scrollTo({
@@ -119,6 +169,21 @@ export default function FloatingChatOverlay() {
             behavior: "smooth",
         });
     }, [messages]);
+
+    const deliver = useCallback(
+        async (clientMessageId: string, text: string) => {
+            const result = await gatewayEngine.sendChatMessage({
+                roomCode: roomCode.toUpperCase(),
+                message: text,
+                clientMessageId,
+            });
+
+            setMessages((prev) =>
+                applySendResult(prev, clientMessageId, result),
+            );
+        },
+        [gatewayEngine, roomCode],
+    );
 
     const handleSend = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -129,22 +194,40 @@ export default function FloatingChatOverlay() {
             return;
         }
 
-        watchPartyGatewayEngine.emitChatMessage({
-            roomCode: roomCode.toUpperCase(),
-            message: cleanMessage,
-        });
+        const clientMessageId = createClientMessageId();
 
-        setMessages((prev) => [
-            ...prev,
-            {
-                kind: "self",
-                username: "Me",
+        setMessages((prev) =>
+            appendPending(prev, {
+                clientMessageId,
+                username: selfUsername ?? "Me",
                 text: cleanMessage,
-            },
-        ]);
+            }),
+        );
 
         setInput("");
+
+        void deliver(clientMessageId, cleanMessage);
     };
+
+    const handleRetry = (entry: ChatEntry) => {
+        const clientMessageId = entry.clientMessageId;
+
+        if (!clientMessageId) {
+            return;
+        }
+
+        setMessages((prev) =>
+            prev.map((m) =>
+                m.clientMessageId === clientMessageId
+                    ? { ...m, status: "pending", error: undefined }
+                    : m,
+            ),
+        );
+
+        void deliver(clientMessageId, entry.text);
+    };
+
+    const remainingCharacters = CHAT_MESSAGE_MAX_LENGTH - input.length;
 
     const handleDragStart = (event: React.PointerEvent<HTMLDivElement>) => {
         if (event.button !== 0) {
@@ -288,40 +371,59 @@ export default function FloatingChatOverlay() {
                     className="px-3"
                 >
                     <Stack gap={8} justify="end" className="min-h-full py-2">
-                        {messages.map((msg, index) => {
-                            if (msg.kind === "system") {
-                                return (
-                                    <Text
-                                        key={index}
-                                        size="11px"
-                                        ta="center"
-                                        className="px-4 text-zinc-500"
-                                    >
-                                        {msg.text}
-                                    </Text>
-                                );
-                            }
+                        <Text
+                            size="11px"
+                            ta="center"
+                            className="px-4 text-zinc-500"
+                        >
+                            You joined the room. Say hi 👋
+                        </Text>
 
+                        {messages.map((msg) => {
                             if (msg.kind === "self") {
                                 return (
                                     <Box
-                                        key={index}
-                                        className="max-w-[80%] self-end rounded-2xl rounded-br-md bg-teal-500/90 px-3 py-1.5 text-zinc-950 shadow-md"
+                                        key={msg.key}
+                                        className="flex max-w-[80%] flex-col items-end self-end"
                                     >
-                                        <Text
-                                            size="xs"
-                                            fw={500}
-                                            className="wrap-break-word leading-relaxed"
+                                        <Box
+                                            title={formatTime(msg.timestamp)}
+                                            className={`rounded-2xl rounded-br-md px-3 py-1.5 text-zinc-950 shadow-md transition-opacity ${
+                                                msg.status === "failed"
+                                                    ? "bg-rose-400/80"
+                                                    : "bg-teal-500/90"
+                                            } ${
+                                                msg.status === "pending"
+                                                    ? "opacity-60"
+                                                    : ""
+                                            }`}
                                         >
-                                            {msg.text}
-                                        </Text>
+                                            <Text
+                                                size="xs"
+                                                fw={500}
+                                                className="wrap-break-word whitespace-pre-wrap leading-relaxed"
+                                            >
+                                                {msg.text}
+                                            </Text>
+                                        </Box>
+
+                                        {msg.status === "failed" && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRetry(msg)}
+                                                className="mt-0.5 text-[10px] text-rose-300 hover:underline"
+                                            >
+                                                {msg.error ?? "Not sent"} ·
+                                                Retry
+                                            </button>
+                                        )}
                                     </Box>
                                 );
                             }
 
                             return (
                                 <Group
-                                    key={index}
+                                    key={msg.key}
                                     gap={6}
                                     align="flex-end"
                                     wrap="nowrap"
@@ -330,7 +432,10 @@ export default function FloatingChatOverlay() {
                                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-500/20 text-[10px] font-bold text-sky-200 ring-1 ring-sky-300/20">
                                         {msg.username.slice(0, 1).toUpperCase()}
                                     </span>
-                                    <Box className="min-w-0 rounded-2xl rounded-bl-md border border-white/5 bg-white/10 px-3 py-1.5">
+                                    <Box
+                                        title={formatTime(msg.timestamp)}
+                                        className="min-w-0 rounded-2xl rounded-bl-md border border-white/5 bg-white/10 px-3 py-1.5"
+                                    >
                                         <Text
                                             size="10px"
                                             fw={700}
@@ -340,7 +445,7 @@ export default function FloatingChatOverlay() {
                                         </Text>
                                         <Text
                                             size="xs"
-                                            className="wrap-break-word leading-relaxed text-zinc-100"
+                                            className="wrap-break-word whitespace-pre-wrap leading-relaxed text-zinc-100"
                                         >
                                             {msg.text}
                                         </Text>
@@ -356,7 +461,14 @@ export default function FloatingChatOverlay() {
                         placeholder="Say something…"
                         radius="xl"
                         value={input}
+                        maxLength={CHAT_MESSAGE_MAX_LENGTH}
                         onChange={(e) => setInput(e.currentTarget.value)}
+                        description={
+                            remainingCharacters <= COUNTER_THRESHOLD
+                                ? `${remainingCharacters} characters left`
+                                : undefined
+                        }
+                        inputWrapperOrder={["input", "description"]}
                         rightSection={
                             <ActionIcon
                                 type="submit"
