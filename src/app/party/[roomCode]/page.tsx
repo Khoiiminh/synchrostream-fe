@@ -9,7 +9,8 @@ import {
     useState,
 } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Box, Button, Group, Modal, PasswordInput, Text } from "@mantine/core";
+import { Box, Button, Group, Modal, Text } from "@mantine/core";
+import { RoomPasswordInput } from "@/components/commons/RoomPasswordInput";
 import { KeyRound, LogOut, Mic, MicOff } from "lucide-react";
 import {
     completeBackNavigation,
@@ -661,7 +662,7 @@ function IntegratedWatchPartyContent() {
                             <Text size="xs" c="red.4" mt="md">
                                 {roomErrorMessage}
                             </Text>
-                            <PasswordInput
+                            <RoomPasswordInput
                                 mt="sm"
                                 placeholder="Enter the room password"
                                 aria-label="Room password"
