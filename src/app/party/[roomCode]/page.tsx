@@ -9,6 +9,7 @@ import {
     useState,
 } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useStore } from "react-redux";
 import { Box, Button, Group, Modal, Text } from "@mantine/core";
 import { RoomPasswordInput } from "@/shared/ui/RoomPasswordInput";
 import { KeyRound, LogOut, Mic, MicOff } from "lucide-react";
@@ -20,6 +21,7 @@ import {
 import { useAppSelector } from "@/store/hooks";
 import { useEngine } from "@/context/EngineContext";
 import WatchClientLeaf from "@/components/watch/WatchClientLeaf";
+import { createPartyMediaController } from "@/core/sync/createMediaSyncController";
 import StyleControllerPanel from "@/components/watch-party/StyleControllerPanel";
 import FloatingChatOverlay from "@/components/watch-party/FloatingChatOverlay";
 import NavbarWrapper from "@/components/commons/NavbarWrapper";
@@ -130,6 +132,36 @@ function IntegratedWatchPartyContent() {
 
     const [activeSyncController, setActiveSyncController] =
         useState<MediaSyncController | null>(null);
+
+    // The player is party-agnostic: the party builds its sync controller
+    // (room, owner and gateway) and hands the factory down.
+    const store = useStore();
+    const partyRoomId = activeRoom?.roomId;
+    const partyRoomCode = activeRoom?.roomCode;
+    const partyOwnerId = activeRoom?.ownerId;
+    const createPartyController = useCallback(
+        (streamUrl: string) => {
+            if (!partyRoomId || !partyRoomCode || !userId || !partyOwnerId) {
+                return null;
+            }
+            return createPartyMediaController(store, gatewayEngine, {
+                streamUrl,
+                roomId: partyRoomId,
+                roomCode: partyRoomCode,
+                userId,
+                ownerId: partyOwnerId,
+            });
+        },
+        [
+            partyRoomId,
+            partyRoomCode,
+            userId,
+            partyOwnerId,
+            store,
+            gatewayEngine,
+        ],
+    );
+    const watcherCount = roomMembers?.length ?? 1;
 
     const handleControllerAttachmentChange = useCallback(
         (controller: MediaSyncController, attached: boolean) => {
@@ -766,6 +798,8 @@ function IntegratedWatchPartyContent() {
                     <MemoizedWatchClientLeaf
                         mediaId={resolvedMovieId}
                         isPartyMode={true}
+                        createController={createPartyController}
+                        watcherCount={watcherCount}
                         onControllerAttachmentChange={
                             handleControllerAttachmentChange
                         }
