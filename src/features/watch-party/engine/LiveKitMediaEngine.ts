@@ -1,4 +1,4 @@
-import { ParticipantMedia } from "@/types/participantMedia";
+import { ParticipantMedia } from "../types/participantMedia";
 import {
     AudioCaptureOptions,
     LocalTrack,

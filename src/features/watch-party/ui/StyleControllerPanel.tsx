@@ -23,12 +23,12 @@ import {
     Link2,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { setUiStyles } from "@/store/slices/roomSlice";
+import { setUiStyles } from "../model/roomSlice";
 import {
     buildInviteLink,
     loadJoinPassword,
     loadOwnedRoomPassword,
-} from "@/lib/roomAccessKeys";
+} from "../model/roomAccessKeys";
 
 interface PanelPosition {
     x: number;

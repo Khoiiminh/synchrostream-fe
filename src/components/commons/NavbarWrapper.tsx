@@ -21,7 +21,7 @@ import {
     ROOM_PASSWORD_MAX_LENGTH,
     ROOM_PASSWORD_MIN_LENGTH,
     saveJoinPassword,
-} from "@/lib/roomAccessKeys";
+} from "@/features/watch-party";
 import ModalHeading from "@/shared/ui/ModalHeading";
 
 interface NavbarWrapperProps {

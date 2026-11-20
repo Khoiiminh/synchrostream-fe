@@ -1,5 +1,5 @@
-import { ParticipantNode } from "@/store/slices/roomSlice";
-import { ParticipantMedia } from "@/types/participantMedia";
+import { ParticipantNode } from "../model/roomSlice";
+import { ParticipantMedia } from "../types/participantMedia";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AspectRatio, Box, Text } from "@mantine/core";
 import { createLogger } from "@/shared/lib/logger";

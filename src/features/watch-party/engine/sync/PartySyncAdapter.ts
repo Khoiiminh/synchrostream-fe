@@ -1,6 +1,6 @@
 import { RemotePlaybackGuard } from "@/shared/playback-sync/RemotePlaybackGuard";
 import { SyncEngine } from "@/shared/playback-sync/SyncEngine";
-import { WatchPartyGatewayEngine } from "../services/WatchPartyGatewayEngine";
+import { WatchPartyGatewayEngine } from "../WatchPartyGatewayEngine";
 import {
     ISyncAdapter,
     QualityLevel,

@@ -15,13 +15,13 @@ import {
 import { Send, MessageSquare, ChevronUp, ChevronDown } from "lucide-react";
 
 import { useParams } from "next/navigation";
-import { useEngine } from "@/context/EngineContext";
+import { useEngine } from "../engine/EngineContext";
 import { useAppSelector } from "@/store/hooks";
 import {
     CHAT_MESSAGE_MAX_LENGTH,
     type ChatHistoryPayload,
     type ChatMessageBroadcastPayload,
-} from "@/types/watchParty";
+} from "../types/watchParty";
 import {
     appendPending,
     applyBroadcast,
@@ -29,7 +29,7 @@ import {
     createClientMessageId,
     mergeHistory,
     type ChatEntry,
-} from "@/core/chat/chatTimeline";
+} from "../chat/chatTimeline";
 
 interface PanelPosition {
     x: number;

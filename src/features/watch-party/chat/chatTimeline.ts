@@ -1,4 +1,4 @@
-import type { ChatMessageBroadcastPayload } from "@/types/watchParty";
+import type { ChatMessageBroadcastPayload } from "../types/watchParty";
 
 /**
  * Pure helpers for the chat timeline shown in the watch-party overlay.

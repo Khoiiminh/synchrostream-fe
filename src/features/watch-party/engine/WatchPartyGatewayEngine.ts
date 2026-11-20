@@ -9,13 +9,13 @@ import {
     RoomErrorDetail,
     RoomSnapshotPayload,
     PlaybackStateSnapshot,
-} from "@/store/slices/roomSlice";
+} from "../model/roomSlice";
 import { createLogger } from "@/shared/lib/logger";
 import type {
     ChatHistoryPayload,
     ChatMessageBroadcastPayload,
     ChatSendAck,
-} from "@/types/watchParty";
+} from "../types/watchParty";
 
 /** RoomErrorDetail codes for a session that ended for good. */
 export const ROOM_CLOSED_CODE = "ROOM_CLOSED";

@@ -1,6 +1,6 @@
 import { RemotePlaybackGuard } from "@/shared/playback-sync/RemotePlaybackGuard";
 import { SyncEngine } from "@/shared/playback-sync/SyncEngine";
-import { WatchPartyGatewayEngine } from "../services/WatchPartyGatewayEngine";
+import { WatchPartyGatewayEngine } from "../WatchPartyGatewayEngine";
 import { ClockSync } from "@/shared/playback-sync/ClockSync";
 import { SyncEventType, SyncMetrics } from "@/shared/playback-sync/SyncMetrics";
 import { createLogger } from "@/shared/lib/logger";

@@ -1,7 +1,7 @@
 import { Store } from "@reduxjs/toolkit";
 import { SyncEngine } from "@/shared/playback-sync/SyncEngine";
 import { MediaSyncController } from "@/shared/playback-sync/MediaSyncController";
-import { WatchPartyGatewayEngine } from "../services/WatchPartyGatewayEngine";
+import { WatchPartyGatewayEngine } from "../WatchPartyGatewayEngine";
 import { PartySyncAdapter } from "./PartySyncAdapter";
 import { RemotePlaybackGuard } from "@/shared/playback-sync/RemotePlaybackGuard";
 

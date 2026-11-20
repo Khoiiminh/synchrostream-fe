@@ -12,7 +12,7 @@
 import {
     PlaybackCoordinator,
     RoomPlaybackSnapshot,
-} from "../src/core/sync/PlaybackCoordinator";
+} from "../src/features/watch-party/engine/sync/PlaybackCoordinator";
 import { RemotePlaybackGuard } from "../src/shared/playback-sync/RemotePlaybackGuard";
 import { SyncMetrics } from "../src/shared/playback-sync/SyncMetrics";
 

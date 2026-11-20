@@ -17,12 +17,12 @@ import { useRouter } from "next/navigation";
 import { LoadingPage } from "@/shared/ui/LoadingPage";
 import { useState } from "react";
 import { KeyRound, Play, Users, Video } from "lucide-react";
-import { useCreateRoomMutation } from "@/store/services/watchPartyApi";
 import {
     ROOM_PASSWORD_MAX_LENGTH,
     ROOM_PASSWORD_MIN_LENGTH,
     saveOwnedRoomPassword,
-} from "@/lib/roomAccessKeys";
+    useCreateRoomMutation,
+} from "@/features/watch-party";
 import ModalHeading from "@/shared/ui/ModalHeading";
 
 export default function CatalogGridClientLeaf() {
