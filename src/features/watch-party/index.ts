@@ -2,7 +2,10 @@
 
 /*
  * Public API of the watch-party slice. Code outside src/features/watch-party
- * imports only from here (the lint rule forbids deep imports).
+ * imports only from here or, for the route's page component, from ./routes
+ * (the lint rule forbids other deep imports). This entry stays light: the
+ * root layout and the navbar load it on every page, so it must not pull in
+ * the room UI or LiveKit.
  *
  * "use client": the root layout (a server component) imports EngineProvider
  * from here, and this file also re-exports RTK Query APIs whose modules call
@@ -10,8 +13,7 @@
  * instead of evaluating those modules; client code gets the real values.
  */
 
-// The room page and the app-wide engine provider.
-export { PartyRoom } from "./ui/PartyRoom";
+// The app-wide gateway engine provider.
 export { EngineProvider } from "./engine/EngineContext";
 
 // Store wiring (src/store/index.ts).
