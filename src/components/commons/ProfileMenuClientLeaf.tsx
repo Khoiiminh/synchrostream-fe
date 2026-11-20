@@ -8,12 +8,12 @@ import {
     useGetMeQuery,
     useLogoutMutation,
 } from "@/store/services/authApi";
-import { LoadingPage } from "./LoadingPage";
+import { LoadingPage } from "@/shared/ui/LoadingPage";
 import { createPortal } from "react-dom";
 import { useAppDispatch } from "@/store/hooks";
-import { clearCredentials } from "@/store/slices/authSlice";
-import { guardedNavigate } from "@/core/navigation/leaveGuard";
-import { createLogger } from "@/core/logging/logger";
+import { clearCredentials } from "@/shared/session/authSlice";
+import { guardedNavigate } from "@/shared/lib/leaveGuard";
+import { createLogger } from "@/shared/lib/logger";
 
 const log = createLogger("ProfileMenu");
 

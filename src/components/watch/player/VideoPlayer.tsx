@@ -3,10 +3,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Paper } from "@mantine/core";
 
-import { MediaSyncController } from "@/core/sync/MediaSyncController";
-import { QualityLevel } from "@/core/sync/ISyncAdapter";
+import { MediaSyncController } from "@/shared/playback-sync/MediaSyncController";
+import { QualityLevel } from "@/shared/playback-sync/ISyncAdapter";
 import PlayerControls from "./PlayerControls";
-import { createLogger } from "@/core/logging/logger";
+import { createLogger } from "@/shared/lib/logger";
 
 const log = createLogger("VideoPlayer");
 

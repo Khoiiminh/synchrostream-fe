@@ -1,5 +1,5 @@
-import type { MediaSyncController } from "../core/sync/MediaSyncController";
-import type { PlaybackDriftSample } from "../core/sync/SyncMetrics";
+import type { MediaSyncController } from "@/shared/playback-sync/MediaSyncController";
+import type { PlaybackDriftSample } from "@/shared/playback-sync/SyncMetrics";
 
 export interface RapidSeekScenarioConfig {
     /** Total duration of the rapid-seek phase, in milliseconds. */

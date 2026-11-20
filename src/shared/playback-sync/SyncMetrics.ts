@@ -1,4 +1,4 @@
-import { createLogger } from "@/core/logging/logger";
+import { createLogger } from "@/shared/lib/logger";
 
 const log = createLogger("SyncMetrics");
 /**

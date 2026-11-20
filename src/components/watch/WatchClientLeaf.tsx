@@ -12,7 +12,7 @@ import { mediaApi, useGetSoloStreamQuery } from "@/store/services/mediaApi";
 import {
     resetPlayback,
     updatePlaybackSnapshot,
-} from "@/store/slices/playbackSlice";
+} from "@/shared/playback-sync/playbackSlice";
 
 import NavbarWrapper from "../commons/NavbarWrapper";
 
@@ -23,11 +23,11 @@ import {
     createSoloMediaController,
 } from "@/core/sync/createMediaSyncController";
 
-import { MediaSyncController } from "@/core/sync/MediaSyncController";
-import { QualityLevel } from "@/core/sync/ISyncAdapter";
+import { MediaSyncController } from "@/shared/playback-sync/MediaSyncController";
+import { QualityLevel } from "@/shared/playback-sync/ISyncAdapter";
 
 import VideoPlayer from "./player/VideoPlayer";
-import { createLogger } from "@/core/logging/logger";
+import { createLogger } from "@/shared/lib/logger";
 
 const log = createLogger("WatchPage");
 

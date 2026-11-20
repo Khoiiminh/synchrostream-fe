@@ -12,7 +12,7 @@ import {
 } from "@mantine/core";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { setProfileData } from "@/store/slices/authSlice";
+import { setProfileData } from "@/shared/session/authSlice";
 import { useGetMeQuery } from "@/store/services/authApi";
 import { DashboardLogoutButton } from "./DashboardLogoutButton";
 

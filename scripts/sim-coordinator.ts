@@ -13,8 +13,8 @@ import {
     PlaybackCoordinator,
     RoomPlaybackSnapshot,
 } from "../src/core/sync/PlaybackCoordinator";
-import { RemotePlaybackGuard } from "../src/core/services/RemotePlaybackGuard";
-import { SyncMetrics } from "../src/core/sync/SyncMetrics";
+import { RemotePlaybackGuard } from "../src/shared/playback-sync/RemotePlaybackGuard";
+import { SyncMetrics } from "../src/shared/playback-sync/SyncMetrics";
 
 class FakeEngine {
     position = 0;

@@ -11,18 +11,18 @@ import {
     TextInput,
     Modal,
 } from "@mantine/core";
-import { RoomPasswordInput } from "@/components/commons/RoomPasswordInput";
+import { RoomPasswordInput } from "@/shared/ui/RoomPasswordInput";
 import ProfileMenuClientLeaf from "./ProfileMenuClientLeaf";
 import { useRouter } from "next/navigation";
 import { Hash, KeyRound, LogIn, Users } from "lucide-react";
-import { guardedNavigate } from "@/core/navigation/leaveGuard";
+import { guardedNavigate } from "@/shared/lib/leaveGuard";
 import {
     ROOM_CODE_PATTERN,
     ROOM_PASSWORD_MAX_LENGTH,
     ROOM_PASSWORD_MIN_LENGTH,
     saveJoinPassword,
 } from "@/lib/roomAccessKeys";
-import ModalHeading from "./ModalHeading";
+import ModalHeading from "@/shared/ui/ModalHeading";
 
 interface NavbarWrapperProps {
     children: React.ReactNode;

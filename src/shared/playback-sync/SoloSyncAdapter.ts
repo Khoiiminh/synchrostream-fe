@@ -1,4 +1,4 @@
-import { SyncEngine } from "../services/SyncEngine";
+import { SyncEngine } from "./SyncEngine";
 import { ISyncAdapter, QualityLevel } from "./ISyncAdapter";
 
 export class SoloSyncAdapter implements ISyncAdapter {

@@ -1,9 +1,9 @@
-import { RemotePlaybackGuard } from "../services/RemotePlaybackGuard";
-import { SyncEngine } from "../services/SyncEngine";
+import { RemotePlaybackGuard } from "@/shared/playback-sync/RemotePlaybackGuard";
+import { SyncEngine } from "@/shared/playback-sync/SyncEngine";
 import { WatchPartyGatewayEngine } from "../services/WatchPartyGatewayEngine";
-import { ClockSync } from "./ClockSync";
-import { SyncEventType, SyncMetrics } from "./SyncMetrics";
-import { createLogger } from "@/core/logging/logger";
+import { ClockSync } from "@/shared/playback-sync/ClockSync";
+import { SyncEventType, SyncMetrics } from "@/shared/playback-sync/SyncMetrics";
+import { createLogger } from "@/shared/lib/logger";
 
 const log = createLogger("PlaybackCoordinator");
 

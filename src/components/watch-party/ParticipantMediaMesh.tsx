@@ -2,7 +2,7 @@ import { ParticipantNode } from "@/store/slices/roomSlice";
 import { ParticipantMedia } from "@/types/participantMedia";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AspectRatio, Box, Text } from "@mantine/core";
-import { createLogger } from "@/core/logging/logger";
+import { createLogger } from "@/shared/lib/logger";
 
 const log = createLogger("ParticipantMediaMesh");
 

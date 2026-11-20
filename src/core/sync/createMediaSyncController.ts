@@ -1,10 +1,10 @@
 import { Store } from "@reduxjs/toolkit";
-import { SyncEngine } from "../services/SyncEngine";
-import { SoloSyncAdapter } from "./SoloSyncAdapter";
-import { MediaSyncController } from "./MediaSyncController";
+import { SyncEngine } from "@/shared/playback-sync/SyncEngine";
+import { SoloSyncAdapter } from "@/shared/playback-sync/SoloSyncAdapter";
+import { MediaSyncController } from "@/shared/playback-sync/MediaSyncController";
 import { WatchPartyGatewayEngine } from "../services/WatchPartyGatewayEngine";
 import { PartySyncAdapter } from "./PartySyncAdapter";
-import { RemotePlaybackGuard } from "../services/RemotePlaybackGuard";
+import { RemotePlaybackGuard } from "@/shared/playback-sync/RemotePlaybackGuard";
 
 export function createSoloMediaController(store: Store, streamUrl: string) {
     const engine = new SyncEngine(store);

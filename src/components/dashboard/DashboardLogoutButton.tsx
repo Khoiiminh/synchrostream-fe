@@ -2,12 +2,12 @@
 
 import { authApi, useLogoutMutation } from "@/store/services/authApi";
 import { useState } from "react";
-import { LoadingPage } from "../commons/LoadingPage";
+import { LoadingPage } from "@/shared/ui/LoadingPage";
 import { Button } from "@mantine/core";
 import { createPortal } from "react-dom";
 import { useAppDispatch } from "@/store/hooks";
-import { clearCredentials } from "@/store/slices/authSlice";
-import { createLogger } from "@/core/logging/logger";
+import { clearCredentials } from "@/shared/session/authSlice";
+import { createLogger } from "@/shared/lib/logger";
 
 const log = createLogger("DashboardLogout");
 
