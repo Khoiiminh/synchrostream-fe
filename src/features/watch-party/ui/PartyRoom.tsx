@@ -1,54 +1,35 @@
 "use client";
 
-import {
-    memo,
-    useCallback,
-    useEffect,
-    useLayoutEffect,
-    useRef,
-    useState,
-} from "react";
+import { memo, useEffect, useLayoutEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useStore } from "react-redux";
 import { Box, Button, Group, Modal, Text } from "@mantine/core";
-import { RoomPasswordInput } from "@/shared/ui/RoomPasswordInput";
 import { KeyRound, LogOut, Mic, MicOff } from "lucide-react";
-import {
-    completeBackNavigation,
-    LeaveDestination,
-    usePartyLeaveGuard,
-} from "@/shared/lib/leaveGuard";
-import { useAppSelector } from "@/store/hooks";
-import { useEngine } from "../engine/EngineContext";
-import WatchClientLeaf from "@/components/watch/WatchClientLeaf";
-import { createPartyMediaController } from "../engine/sync/createPartyMediaController";
-import StyleControllerPanel from "./StyleControllerPanel";
-import FloatingChatOverlay from "./FloatingChatOverlay";
-import NavbarWrapper from "@/components/commons/NavbarWrapper";
-import { useGetLiveKitMediaSessionConnectionMutation } from "../api/mediaSessionApi";
-import {
-    LiveKitMediaEngine,
-    LiveKitMediaEngineStatus,
-} from "../engine/LiveKitMediaEngine";
-import ParticipantMediaMesh from "./ParticipantMediaMesh";
-import RoomPill from "./RoomPill";
-import { ParticipantMedia } from "../types/participantMedia";
-import { MediaSyncController } from "@/shared/playback-sync/MediaSyncController";
-import { RequireAuthenticatedSession } from "@/components/auth/RequireAuthenticatedSession";
+import { RoomPasswordInput } from "@/shared/ui/RoomPasswordInput";
+import ModalHeading from "@/shared/ui/ModalHeading";
 import { createLogger } from "@/shared/lib/logger";
+import { useAppSelector } from "@/store/hooks";
+import WatchClientLeaf from "@/components/watch/WatchClientLeaf";
+import NavbarWrapper from "@/components/commons/NavbarWrapper";
+import { RequireAuthenticatedSession } from "@/components/auth/RequireAuthenticatedSession";
+import { useEngine } from "../engine/EngineContext";
 import {
-    ROOM_CLOSED_CODE,
-    ROOM_LEFT_ELSEWHERE_CODE,
-} from "../engine/WatchPartyGatewayEngine";
-import {
-    clearJoinPassword,
-    clearOwnedRoomPassword,
     consumeJoinPasswordFromUrl,
     ROOM_PASSWORD_MAX_LENGTH,
     ROOM_PASSWORD_MIN_LENGTH,
-    saveJoinPassword,
 } from "../model/roomAccessKeys";
-import ModalHeading from "@/shared/ui/ModalHeading";
+import { usePartyGateway } from "../hooks/usePartyGateway";
+import { usePartyLeave } from "../hooks/usePartyLeave";
+import { useLiveKitMedia } from "../hooks/useLiveKitMedia";
+import { usePushToTalk } from "../hooks/usePushToTalk";
+import {
+    useDisconnectOnUnload,
+    usePartyPlayback,
+    useRoomSessionEnd,
+} from "../hooks/useRoomLifecycle";
+import StyleControllerPanel from "./StyleControllerPanel";
+import FloatingChatOverlay from "./FloatingChatOverlay";
+import ParticipantMediaMesh from "./ParticipantMediaMesh";
+import RoomPill from "./RoomPill";
 
 const log = createLogger("PartyPage");
 
@@ -61,9 +42,6 @@ const MemoizedParticipantMediaMesh = memo(ParticipantMediaMesh);
 const MemoizedWatchClientLeaf = memo(WatchClientLeaf);
 const MemoizedStyleControllerPanel = memo(StyleControllerPanel);
 const MemoizedFloatingChatOverlay = memo(FloatingChatOverlay);
-
-const PUSH_TO_TALK_KEY = "KeyV";
-const ROOM_ENDED_REDIRECT_MS = 4000;
 
 /** The whole watch-party room for /party/[roomCode]: auth gate, gateway, media and UI. */
 export function PartyRoom() {
@@ -84,6 +62,12 @@ export function PartyRoom() {
     );
 }
 
+/*
+ * The room once signed in. The hooks run their effects in this order, the
+ * same order the effects had when they were written inline: gateway join,
+ * leave guard, LiveKit token and engine, push-to-talk, unload disconnect,
+ * auth log, room-ended redirect.
+ */
 function IntegratedWatchPartyContent() {
     const { roomCode } = useParams<{ roomCode: string }>();
     const { gatewayEngine } = useEngine();
@@ -104,487 +88,63 @@ function IntegratedWatchPartyContent() {
     );
     const isAuthHydrated = useAppSelector((state) => state.auth.isAuthHydrated);
 
-    const [
-        getLiveKitMediaSessionConnection,
-        {
-            data: liveKitMediaSessionConnection,
-            isLoading: isLiveKitMediaSessionConnectionLoading,
-            error: liveKitMediaSessionConnectionError,
-        },
-    ] = useGetLiveKitMediaSessionConnectionMutation();
-
-    const liveKitMediaEngineRef = useRef<LiveKitMediaEngine | null>(null);
-
-    const [participantMedia, setParticipantMedia] = useState<
-        ParticipantMedia[]
-    >([]);
-
-    const [liveKitStatus, setLiveKitStatus] =
-        useState<LiveKitMediaEngineStatus>("DISCONNECTED");
-
-    const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-
-    // Push-to-talk. The microphone is open only while the talk key/button is
-    // held: a browser tab that holds the mic gets its playback (the movie)
-    // lowered by Windows, so an always-open mic would break the movie.
-    const [isTalkHeld, setIsTalkHeld] = useState(false);
-    const [isMicActive, setIsMicActive] = useState(false);
-    const [micError, setMicError] = useState<string | null>(null);
-
-    const [activeSyncController, setActiveSyncController] =
-        useState<MediaSyncController | null>(null);
-
-    // The player is party-agnostic: the party builds its sync controller
-    // (room, owner and gateway) and hands the factory down.
-    const store = useStore();
-    const partyRoomId = activeRoom?.roomId;
-    const partyRoomCode = activeRoom?.roomCode;
-    const partyOwnerId = activeRoom?.ownerId;
-    const createPartyController = useCallback(
-        (streamUrl: string) => {
-            if (!partyRoomId || !partyRoomCode || !userId || !partyOwnerId) {
-                return null;
-            }
-            return createPartyMediaController(store, gatewayEngine, {
-                streamUrl,
-                roomId: partyRoomId,
-                roomCode: partyRoomCode,
-                userId,
-                ownerId: partyOwnerId,
-            });
-        },
-        [
-            partyRoomId,
-            partyRoomCode,
+    const { createPartyController, handleControllerAttachmentChange } =
+        usePartyPlayback({
+            roomId: activeRoom?.roomId,
+            roomCode: activeRoom?.roomCode,
+            ownerId: activeRoom?.ownerId,
             userId,
-            partyOwnerId,
-            store,
             gatewayEngine,
-        ],
-    );
+        });
     const watcherCount = roomMembers?.length ?? 1;
-
-    const handleControllerAttachmentChange = useCallback(
-        (controller: MediaSyncController, attached: boolean) => {
-            setActiveSyncController((currentController) => {
-                if (attached) return controller;
-
-                if (currentController === controller) return null;
-
-                return currentController;
-            });
-        },
-        [],
-    );
-
-    // Room password for the join handshake. Never kept in the URL: the gateway
-    // effect moves any #pwd= (or legacy ?pwd=) into this tab's sessionStorage,
-    // strips it from the address bar, and records it here for the room-switch
-    // and retry buttons. See docs/room-password-handling.md.
-    const joinPasswordRef = useRef("");
-    const [retryPassword, setRetryPassword] = useState("");
     const resolvedMovieId = activeRoom?.movieId || "";
 
-    // Gateway connection effect
-    useEffect(() => {
-        // Runs first so the password leaves the address bar even before auth
-        // hydration finishes. Idempotent: a second run reads sessionStorage.
-        const joinPassword = roomCode
-            ? consumeJoinPasswordFromUrl(roomCode)
-            : "";
-        joinPasswordRef.current = joinPassword;
-
-        log.debug("Gateway effect entered", {
-            roomCode,
-            userId,
-            hasRoomPassword: joinPassword.length > 0,
-        });
-
-        if (!isAuthHydrated) {
-            log.debug("Waiting for auth hydration");
-            return;
-        }
-
-        if (!roomCode || !userId || !isAuthenticated) {
-            log.debug("Gateway connection blocked", {
-                hasRoomCode: !!roomCode,
-                hasUserId: !!userId,
-                isAuthenticated,
-            });
-
-            return;
-        }
-
-        log.debug("Calling gatewayEngine.connect()", {
-            roomCode,
-            userId,
-        });
-
-        gatewayEngine.connect({
-            dto: {
-                roomCode,
-                passwordPlain: joinPassword,
-            },
-            userId,
-        });
-
-        log.debug("gatewayEngine.connect() called");
-
-        // The gateway engine records why the session ended in the store; the
-        // page then shows a "room closed" screen and returns to the catalog.
-        // No alert(): it blocks the page, and a dialog in a background tab
-        // can hold the redirect indefinitely.
-        const handleRoomTerminated = () => {
-            // The room is gone: drop both saved passwords for it.
-            clearJoinPassword(roomCode);
-            clearOwnedRoomPassword(roomCode);
-        };
-
-        const removeRoomTerminatedListener = gatewayEngine.on({
-            event: "room:terminated",
-            callback: handleRoomTerminated,
-        });
-
-        // This user left the room from another tab or window.
-        const handleRoomLeftElsewhere = () => {
-            clearJoinPassword(roomCode);
-        };
-        const removeRoomLeftListener = gatewayEngine.on({
-            event: "room:left",
-            callback: handleRoomLeftElsewhere,
-        });
-
-        return () => {
-            removeRoomTerminatedListener();
-            removeRoomLeftListener();
-            gatewayEngine.disconnect();
-        };
-    }, [
-        userId,
+    const {
+        retryPassword,
+        setRetryPassword,
+        switchIntoThisRoom,
+        retryJoin,
+        retryWithPassword,
+    } = usePartyGateway({
         roomCode,
+        userId,
+        isAuthenticated,
+        isAuthHydrated,
         gatewayEngine,
         router,
-        isAuthHydrated,
-        isAuthenticated,
-    ]);
+    });
 
-    /*
-     * ------------------------------------------------------------
-     * VOLUNTARY LEAVE
-     * ------------------------------------------------------------
-     * Choosing to leave (Leave button, in-app navigation, Back) cleans up
-     * immediately on the server: an owner's room closes for everyone, a
-     * participant's membership ends. Only connection loss (network drop, tab
-     * close, refresh) keeps the 10 s reconnection grace.
-     */
     const isOwner = !!activeRoom && !!userId && activeRoom.ownerId === userId;
-    const [isLeaving, setIsLeaving] = useState(false);
-    const [pendingLeave, setPendingLeave] = useState<LeaveDestination | null>(
-        null,
-    );
-
-    // A navbar room switch reuses this page instance with a new roomCode; reset
-    // the leave state for the new room (state adjustment during render, the
-    // React-recommended alternative to a resetting effect).
-    const [leaveStateRoomCode, setLeaveStateRoomCode] = useState(roomCode);
-    if (leaveStateRoomCode !== roomCode) {
-        setLeaveStateRoomCode(roomCode);
-        setIsLeaving(false);
-        setPendingLeave(null);
-    }
-
-    const performLeave = useCallback(
-        async (destination: LeaveDestination) => {
-            setPendingLeave(null);
-            setIsLeaving(true);
-            await gatewayEngine.leaveRoom();
-            // Membership ended: coming back must go through the password again.
-            clearJoinPassword(roomCode);
-            // An owner's leave closes the room ("Close room"). Only the owner's
-            // browser has this entry, so for a guest this is a no-op.
-            clearOwnedRoomPassword(roomCode);
-            if (destination.kind === "back") {
-                completeBackNavigation();
-            } else {
-                router.push(destination.href);
-            }
-        },
-        [gatewayEngine, router, roomCode],
-    );
-
-    const requestLeave = useCallback(
-        (destination: LeaveDestination) => {
-            if (isLeaving) return;
-            if (isOwner) {
-                // Owner leave closes the room for everyone (rule 3): confirm first.
-                setPendingLeave(destination);
-                return;
-            }
-            void performLeave(destination);
-        },
-        [isLeaving, isOwner, performLeave],
-    );
-
-    usePartyLeaveGuard(!!activeRoom && !isLeaving, requestLeave);
-
-    // The user confirmed leaving their other room in order to join this one.
-    const handleSwitchIntoThisRoom = useCallback(() => {
-        if (!roomCode || !userId) return;
-        gatewayEngine.connect({
-            dto: { roomCode, passwordPlain: joinPasswordRef.current },
-            userId,
-            leaveCurrent: true,
+    const { isLeaving, pendingLeave, cancelLeave, performLeave, requestLeave } =
+        usePartyLeave({
+            roomCode,
+            isOwner,
+            hasActiveRoom: !!activeRoom,
+            gatewayEngine,
+            router,
         });
-    }, [gatewayEngine, roomCode, userId]);
 
-    // Get LiveKit MediaSession connection
-    useEffect(() => {
-        if (!mediaSessionId) {
-            return;
-        }
-
-        if (!isAuthHydrated) {
-            return;
-        }
-
-        if (!userId || !isAuthenticated) {
-            return;
-        }
-
-        const connectToLiveKitMediaSession = async () => {
-            try {
-                log.debug("Resolving LiveKit MediaSession connection", {
-                    mediaSessionId,
-                });
-
-                const connection =
-                    await getLiveKitMediaSessionConnection(
-                        mediaSessionId,
-                    ).unwrap();
-
-                log.debug("LiveKit connection blueprint received", {
-                    mediaSessionId: connection.data.mediaSessionId,
-                    participantId: connection.data.participantId,
-                    serverUrl: connection.data.serverUrl,
-                    hasParticipantToken: !!connection.data.participantToken,
-                });
-            } catch (error) {
-                log.error(
-                    "Failed to obtain LiveKit connection blueprint",
-                    error,
-                );
-            }
-        };
-
-        void connectToLiveKitMediaSession();
-    }, [
+    const {
+        engineRef,
+        participantMedia,
+        liveKitStatus,
+        localStream,
+        isMicActive,
+        micError,
+        localParticipantId,
+    } = useLiveKitMedia({
         mediaSessionId,
-        getLiveKitMediaSessionConnection,
         userId,
         isAuthenticated,
         isAuthHydrated,
-    ]);
+    });
 
-    // Connect LiveKitMediaEngine using the connection
-    useEffect(() => {
-        if (!mediaSessionId) {
-            return;
-        }
+    const { isTalkHeld, setIsTalkHeld, canTalk } = usePushToTalk(
+        engineRef,
+        liveKitStatus,
+    );
 
-        if (!isAuthHydrated) {
-            return;
-        }
-
-        if (!userId || !isAuthenticated) {
-            return;
-        }
-
-        if (!liveKitMediaSessionConnection?.data) {
-            return;
-        }
-
-        const connection = liveKitMediaSessionConnection.data;
-
-        const engine = new LiveKitMediaEngine();
-
-        liveKitMediaEngineRef.current = engine;
-
-        const removeMediaListener = engine.onMediaUpdate((media) => {
-            setParticipantMedia(media);
-        });
-
-        const removeStatusListener = engine.onStatusUpdate((status, error) => {
-            setLiveKitStatus(status);
-
-            if (error) {
-                log.error("LiveKit media error", error);
-            }
-        });
-
-        const removeLocalStreamListener = engine.onLocalStreamUpdate(
-            (stream) => {
-                log.debug("LiveKit local stream received", {
-                    streamId: stream?.id ?? null,
-                    audioTracks: stream?.getAudioTracks().length ?? 0,
-                    videoTracks: stream?.getVideoTracks().length ?? 0,
-                });
-
-                setLocalStream(stream);
-            },
-        );
-
-        const removeMicrophoneListener = engine.onMicrophoneUpdate(
-            (active, error) => {
-                setIsMicActive(active);
-
-                if (error) {
-                    setMicError(
-                        error.name === "NotAllowedError"
-                            ? "Microphone access is blocked. Allow it in the browser address bar to talk."
-                            : error.message,
-                    );
-                } else if (active) {
-                    setMicError(null);
-                }
-            },
-        );
-
-        const connectToLiveKit = async () => {
-            try {
-                log.debug("Connecting LiveKit media engine", {
-                    mediaSessionId: connection.mediaSessionId,
-                    participantId: connection.participantId,
-                    serverUrl: connection.serverUrl,
-                });
-
-                await engine.connect({
-                    mediaSessionId: connection.mediaSessionId,
-                    participantId: connection.participantId,
-                    serverUrl: connection.serverUrl,
-                    participantToken: connection.participantToken,
-                });
-
-                log.debug("LiveKit media engine connected");
-
-                await engine.enableLocalMedia();
-
-                log.debug("Local camera and microphone enabled");
-            } catch (error) {
-                log.error("Failed to connect LiveKit media engine", error);
-            }
-        };
-
-        void connectToLiveKit();
-
-        return () => {
-            removeMediaListener();
-            removeStatusListener();
-            removeLocalStreamListener();
-            removeMicrophoneListener();
-
-            void engine.disconnect();
-
-            if (liveKitMediaEngineRef.current === engine) {
-                liveKitMediaEngineRef.current = null;
-            }
-
-            setParticipantMedia([]);
-            setLocalStream(null);
-            setIsMicActive(false);
-            setLiveKitStatus("DISCONNECTED");
-        };
-    }, [
-        mediaSessionId,
-        liveKitMediaSessionConnection,
-        userId,
-        isAuthenticated,
-        isAuthHydrated,
-    ]);
-
-    // Push-to-talk: apply the held state to the engine.
-    const canTalk =
-        liveKitStatus === "CONNECTED" || liveKitStatus === "MEDIA_CONNECTED";
-
-    useEffect(() => {
-        const engine = liveKitMediaEngineRef.current;
-
-        if (!engine) {
-            return;
-        }
-
-        void engine.setMicrophoneActive(isTalkHeld && canTalk);
-    }, [isTalkHeld, canTalk]);
-
-    // Push-to-talk: hold V anywhere except while typing (e.g. in chat).
-    useEffect(() => {
-        const isTypingTarget = (target: EventTarget | null) => {
-            const element = target as HTMLElement | null;
-
-            return (
-                !!element &&
-                (element.isContentEditable ||
-                    element.tagName === "INPUT" ||
-                    element.tagName === "TEXTAREA" ||
-                    element.tagName === "SELECT")
-            );
-        };
-
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (
-                event.code !== PUSH_TO_TALK_KEY ||
-                event.repeat ||
-                isTypingTarget(event.target)
-            ) {
-                return;
-            }
-
-            if (event.ctrlKey || event.metaKey || event.altKey) {
-                return;
-            }
-
-            event.preventDefault();
-            setIsTalkHeld(true);
-        };
-
-        const handleKeyUp = (event: KeyboardEvent) => {
-            if (event.code === PUSH_TO_TALK_KEY) {
-                setIsTalkHeld(false);
-            }
-        };
-
-        // A key-up is never delivered if focus leaves the page mid-press.
-        const release = () => setIsTalkHeld(false);
-        const handleVisibilityChange = () => {
-            if (document.visibilityState !== "visible") release();
-        };
-
-        window.addEventListener("keydown", handleKeyDown);
-        window.addEventListener("keyup", handleKeyUp);
-        window.addEventListener("blur", release);
-        document.addEventListener("visibilitychange", handleVisibilityChange);
-
-        return () => {
-            window.removeEventListener("keydown", handleKeyDown);
-            window.removeEventListener("keyup", handleKeyUp);
-            window.removeEventListener("blur", release);
-            document.removeEventListener(
-                "visibilitychange",
-                handleVisibilityChange,
-            );
-        };
-    }, []);
-
-    // beforeunload effect
-    useEffect(() => {
-        const handleWindowClose = () => {
-            gatewayEngine.disconnect(); // Explicitly cut socket link before tab thread dies
-        };
-
-        window.addEventListener("beforeunload", handleWindowClose);
-        return () => {
-            window.removeEventListener("beforeunload", handleWindowClose);
-        };
-    }, [gatewayEngine]);
+    useDisconnectOnUnload(gatewayEngine);
 
     // Auth logging effect
     useEffect(() => {
@@ -595,38 +155,11 @@ function IntegratedWatchPartyContent() {
         });
     }, [userId, roomCode, isAuthenticated]);
 
-    // The session ended for good (host closed the room, or this user left it
-    // in another tab): show why, then return to the catalog.
-    const isRoomSessionEnded =
-        roomErrorDetail?.code === ROOM_CLOSED_CODE ||
-        roomErrorDetail?.code === ROOM_LEFT_ELSEWHERE_CODE;
-
-    useEffect(() => {
-        if (!isRoomSessionEnded) return;
-        const timeoutId = setTimeout(
-            () => router.replace("/catalog"),
-            ROOM_ENDED_REDIRECT_MS,
-        );
-        return () => clearTimeout(timeoutId);
-    }, [isRoomSessionEnded, router]);
+    const isRoomSessionEnded = useRoomSessionEnd(roomErrorDetail, router);
 
     // Server rejections about the room password (missing, wrong, too many tries).
     const isPasswordError =
         !!roomErrorMessage && /password|credential/i.test(roomErrorMessage);
-
-    const handleRetryWithPassword = (event: React.FormEvent) => {
-        event.preventDefault();
-        const password = retryPassword.trim();
-        if (!roomCode || !userId || password.length < ROOM_PASSWORD_MIN_LENGTH)
-            return;
-
-        saveJoinPassword({ roomCode, password });
-        joinPasswordRef.current = password;
-        gatewayEngine.connect({
-            dto: { roomCode, passwordPlain: password },
-            userId,
-        });
-    };
 
     // Prevent downstream player crashing if neither the ws room state nor URL query params contain an ID
     if (!resolvedMovieId) {
@@ -665,7 +198,7 @@ function IntegratedWatchPartyContent() {
                                             ? "red"
                                             : "blue"
                                     }
-                                    onClick={handleSwitchIntoThisRoom}
+                                    onClick={switchIntoThisRoom}
                                 >
                                     {roomErrorDetail.currentRoomIsOwned
                                         ? `Close ${roomErrorDetail.currentRoomCode} and join`
@@ -684,7 +217,7 @@ function IntegratedWatchPartyContent() {
                         // Rejected for a missing or wrong password (e.g. an
                         // old invite link without one): ask for it here.
                         <form
-                            onSubmit={handleRetryWithPassword}
+                            onSubmit={retryWithPassword}
                             className="w-full max-w-sm rounded-2xl border border-white/10 bg-zinc-950/80 p-6 shadow-2xl"
                         >
                             <ModalHeading
@@ -744,17 +277,7 @@ function IntegratedWatchPartyContent() {
                                 <Button
                                     size="xs"
                                     variant="light"
-                                    onClick={() => {
-                                        if (!roomCode || !userId) return;
-                                        gatewayEngine.connect({
-                                            dto: {
-                                                roomCode,
-                                                passwordPlain:
-                                                    joinPasswordRef.current,
-                                            },
-                                            userId,
-                                        });
-                                    }}
+                                    onClick={retryJoin}
                                 >
                                     Try again
                                 </Button>
@@ -786,9 +309,7 @@ function IntegratedWatchPartyContent() {
                     members={roomMembers ?? []}
                     participantMedia={participantMedia}
                     localStream={localStream}
-                    localParticipantId={
-                        liveKitMediaSessionConnection?.data.participantId ?? ""
-                    }
+                    localParticipantId={localParticipantId}
                     videoSize={videoSize}
                     videoOpacity={videoOpacity}
                     isLocalTalking={isMicActive}
@@ -901,7 +422,7 @@ function IntegratedWatchPartyContent() {
 
             <Modal
                 opened={pendingLeave !== null}
-                onClose={() => setPendingLeave(null)}
+                onClose={cancelLeave}
                 title="Close this watch room?"
                 centered
             >
@@ -911,10 +432,7 @@ function IntegratedWatchPartyContent() {
                     be returned to the catalog.
                 </Text>
                 <Group justify="flex-end" gap="sm">
-                    <Button
-                        variant="subtle"
-                        onClick={() => setPendingLeave(null)}
-                    >
+                    <Button variant="subtle" onClick={cancelLeave}>
                         Stay in room
                     </Button>
                     <Button
