@@ -1,4 +1,4 @@
-import type { KeyMetric, Stats } from "@/diagnostics/analysis/syncRunAnalysis";
+import type { KeyMetric, Stats } from "./syncRunAnalysis";
 
 /** Client series colors; distinguishable on the dark dashboard background. */
 export const CLIENT_COLORS = [

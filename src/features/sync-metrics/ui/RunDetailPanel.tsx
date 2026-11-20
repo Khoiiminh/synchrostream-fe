@@ -35,7 +35,7 @@ import {
     formatTextReport,
     keyMetrics,
     Stats,
-} from "@/diagnostics/analysis/syncRunAnalysis";
+} from "../analysis/syncRunAnalysis";
 import {
     CdfChart,
     ChartCard,
@@ -50,20 +50,17 @@ import {
     summaryCsv,
     summaryLatex,
     summaryMarkdown,
-} from "@/utils/syncMetricsExport";
+} from "../analysis/syncMetricsExport";
 import {
     fmt,
     fmtDate,
     fmtMetric,
     STAT_HEADERS,
     statCells,
-} from "@/utils/syncMetricsFormat";
-import {
-    LIVE_WINDOW_MS,
-    syncMetricsClient,
-} from "@/store/services/syncMetricsClient";
-import { useRunData } from "@/hooks/useRunData";
-import type { RunSource } from "@/types/syncMetrics";
+} from "../analysis/syncMetricsFormat";
+import { LIVE_WINDOW_MS, syncMetricsClient } from "../api/syncMetricsClient";
+import { useRunData } from "../hooks/useRunData";
+import type { RunSource } from "../types/syncMetrics";
 
 const HEADLINE_KEYS = [
     "pairP50",

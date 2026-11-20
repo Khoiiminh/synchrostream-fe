@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Tabs } from "@mantine/core";
 import { IconChartLine, IconGitCompare, IconList } from "@tabler/icons-react";
-import { parseInputText, Rec } from "@/diagnostics/analysis/syncRunAnalysis";
+import { parseInputText, Rec } from "../analysis/syncRunAnalysis";
 import { ComparePanel } from "./ComparePanel";
 import { RunDetailPanel } from "./RunDetailPanel";
 import { RunListPanel } from "./RunListPanel";
-import { syncMetricsClient } from "@/store/services/syncMetricsClient";
-import type { RunSource, SyncRunSummary } from "@/types/syncMetrics";
+import { syncMetricsClient } from "../api/syncMetricsClient";
+import type { RunSource, SyncRunSummary } from "../types/syncMetrics";
 
 type Tab = "runs" | "detail" | "compare";
 

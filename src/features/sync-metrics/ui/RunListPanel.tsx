@@ -25,9 +25,9 @@ import {
     IconTrash,
     IconX,
 } from "@tabler/icons-react";
-import { fmtBytes, fmtDate } from "@/utils/syncMetricsFormat";
-import { LIVE_WINDOW_MS } from "@/store/services/syncMetricsClient";
-import type { SyncRunSummary } from "@/types/syncMetrics";
+import { fmtBytes, fmtDate } from "../analysis/syncMetricsFormat";
+import { LIVE_WINDOW_MS } from "../api/syncMetricsClient";
+import type { SyncRunSummary } from "../types/syncMetrics";
 
 interface Props {
     runs: SyncRunSummary[];

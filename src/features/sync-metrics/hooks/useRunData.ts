@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Rec } from "@/diagnostics/analysis/syncRunAnalysis";
-import { syncMetricsClient } from "@/store/services/syncMetricsClient";
-import type { SyncRunMeta, SyncRunPayload } from "@/types/syncMetrics";
+import type { Rec } from "../analysis/syncRunAnalysis";
+import { syncMetricsClient } from "../api/syncMetricsClient";
+import type { SyncRunMeta, SyncRunPayload } from "../types/syncMetrics";
 
 const LIVE_POLL_MS = 5_000;
 
