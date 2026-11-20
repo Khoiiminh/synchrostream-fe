@@ -48,10 +48,10 @@ import {
 } from "@tabler/icons-react";
 import { SyncMetricsWorkspace } from "./sync-metrics/SyncMetricsWorkspace";
 import { io, Socket } from "socket.io-client";
-import { LoadingPage } from "../commons/LoadingPage";
+import { LoadingPage } from "@/shared/ui/LoadingPage";
 import { createPortal } from "react-dom";
-import { clearCredentials } from "@/store/slices/authSlice";
-import { createLogger } from "@/core/logging/logger";
+import { clearCredentials } from "@/shared/session/authSlice";
+import { createLogger } from "@/shared/lib/logger";
 import type {
     CloudTranscodeStatus,
     MovieStatusChangedPayload,

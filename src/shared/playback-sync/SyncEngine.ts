@@ -1,7 +1,7 @@
-import { updatePlaybackSnapshot } from "@/store/slices/playbackSlice";
+import { updatePlaybackSnapshot } from "@/shared/playback-sync/playbackSlice";
 import { Store } from "@reduxjs/toolkit";
 import Hls from "hls.js";
-import { createLogger } from "@/core/logging/logger";
+import { createLogger } from "@/shared/lib/logger";
 
 const log = createLogger("SyncEngine");
 

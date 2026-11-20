@@ -1,12 +1,15 @@
-import { RemotePlaybackGuard } from "../services/RemotePlaybackGuard";
-import { SyncEngine } from "../services/SyncEngine";
+import { RemotePlaybackGuard } from "@/shared/playback-sync/RemotePlaybackGuard";
+import { SyncEngine } from "@/shared/playback-sync/SyncEngine";
 import { WatchPartyGatewayEngine } from "../services/WatchPartyGatewayEngine";
-import { ISyncAdapter, QualityLevel } from "./ISyncAdapter";
+import {
+    ISyncAdapter,
+    QualityLevel,
+} from "@/shared/playback-sync/ISyncAdapter";
 import { PlaybackCoordinator } from "./PlaybackCoordinator";
-import { ClockSync } from "./ClockSync";
-import { SyncMetrics } from "./SyncMetrics";
-import { SyncMetricsUploader } from "./SyncMetricsUploader";
-import { createLogger } from "@/core/logging/logger";
+import { ClockSync } from "@/shared/playback-sync/ClockSync";
+import { SyncMetrics } from "@/shared/playback-sync/SyncMetrics";
+import { SyncMetricsUploader } from "@/shared/playback-sync/SyncMetricsUploader";
+import { createLogger } from "@/shared/lib/logger";
 
 const log = createLogger("PartySyncAdapter");
 

@@ -1,6 +1,6 @@
 import type { SyncDiagnostics } from "./SyncDiagnostics";
 import { ISyncAdapter } from "./ISyncAdapter";
-import { createLogger } from "@/core/logging/logger";
+import { createLogger } from "@/shared/lib/logger";
 
 const log = createLogger("MediaSyncController");
 

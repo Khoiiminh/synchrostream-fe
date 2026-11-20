@@ -1,5 +1,5 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { createAuthenticatedBaseQuery } from "./authenticatedBaseQuery";
+import { createAuthenticatedBaseQuery } from "@/shared/api/authenticatedBaseQuery";
 
 export interface NestResponse<T> {
     success: boolean;

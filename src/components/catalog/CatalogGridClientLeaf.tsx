@@ -11,10 +11,10 @@ import {
     Modal,
     Stack,
 } from "@mantine/core";
-import { RoomPasswordInput } from "@/components/commons/RoomPasswordInput";
+import { RoomPasswordInput } from "@/shared/ui/RoomPasswordInput";
 import { useGetMediaCatalogQuery } from "../../store/services/mediaApi";
 import { useRouter } from "next/navigation";
-import { LoadingPage } from "../commons/LoadingPage";
+import { LoadingPage } from "@/shared/ui/LoadingPage";
 import { useState } from "react";
 import { KeyRound, Play, Users, Video } from "lucide-react";
 import { useCreateRoomMutation } from "@/store/services/watchPartyApi";
@@ -23,7 +23,7 @@ import {
     ROOM_PASSWORD_MIN_LENGTH,
     saveOwnedRoomPassword,
 } from "@/lib/roomAccessKeys";
-import ModalHeading from "../commons/ModalHeading";
+import ModalHeading from "@/shared/ui/ModalHeading";
 
 export default function CatalogGridClientLeaf() {
     const { data: catalog, isLoading, error } = useGetMediaCatalogQuery();

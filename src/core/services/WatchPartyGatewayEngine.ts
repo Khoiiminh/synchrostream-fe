@@ -10,7 +10,7 @@ import {
     RoomSnapshotPayload,
     PlaybackStateSnapshot,
 } from "@/store/slices/roomSlice";
-import { createLogger } from "@/core/logging/logger";
+import { createLogger } from "@/shared/lib/logger";
 import type {
     ChatHistoryPayload,
     ChatMessageBroadcastPayload,

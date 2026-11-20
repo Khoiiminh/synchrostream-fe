@@ -1,6 +1,6 @@
 import React from "react";
 import { Settings } from "lucide-react";
-import { QualityLevel } from "@/core/sync/ISyncAdapter";
+import { QualityLevel } from "@/shared/playback-sync/ISyncAdapter";
 
 interface QualityMenuProps {
     qualityLevels: QualityLevel[];

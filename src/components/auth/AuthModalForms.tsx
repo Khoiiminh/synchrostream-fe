@@ -18,10 +18,10 @@ import {
     useRequestPasswordResetMutation,
 } from "@/store/services/authApi";
 import { useAppDispatch } from "@/store/hooks";
-import { setCredentials } from "@/store/slices/authSlice";
+import { setCredentials } from "@/shared/session/authSlice";
 import { ApiErrorResponse } from "@/types/api";
 import { useRouter } from "next/navigation";
-import { createLogger } from "@/core/logging/logger";
+import { createLogger } from "@/shared/lib/logger";
 
 const log = createLogger("AuthModal");
 
