@@ -1,4 +1,4 @@
-import { SyncDiagnostics } from "@/diagnostics/SyncDiagnostics";
+import type { SyncDiagnostics } from "./SyncDiagnostics";
 import { ISyncAdapter } from "./ISyncAdapter";
 import { createLogger } from "@/core/logging/logger";
 

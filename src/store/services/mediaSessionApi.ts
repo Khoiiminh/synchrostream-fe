@@ -1,20 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { createAuthenticatedBaseQuery } from "./authenticatedBaseQuery";
 
-export interface MediaSessionConnectionResponse {
-    mediaSessionId: string;
-    participantId: string;
-    sfuNodeId: string;
-    signalingEndpoint: string;
-    signalingToken: string;
-}
-
-export interface MediaSessionConnectionApiResponse {
-    data: MediaSessionConnectionResponse;
-    success: boolean;
-    timestamp: string;
-}
-
 export interface LiveKitMediaSessionConnectionResponse {
     mediaSessionId: string;
     participantId: string;
@@ -50,16 +36,6 @@ export const mediaSessionApi = createApi({
     baseQuery: createAuthenticatedBaseQuery("/v1"),
 
     endpoints: (builder) => ({
-        getMediaSessionConnection: builder.mutation<
-            MediaSessionConnectionApiResponse,
-            string
-        >({
-            query: (mediaSessionId) => ({
-                url: `/media-sessions/${mediaSessionId}/connect`,
-                method: "POST",
-            }),
-        }),
-
         getLiveKitMediaSessionConnection: builder.mutation<
             LiveKitMediaSessionApiResponse,
             string
@@ -86,7 +62,6 @@ export const mediaSessionApi = createApi({
 });
 
 export const {
-    useGetMediaSessionConnectionMutation,
     useGetLiveKitMediaSessionConnectionMutation,
     useCreatLiveKitMediaSessionMutation,
 } = mediaSessionApi;

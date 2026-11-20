@@ -1,0 +1,1092 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`analyzeRun (pinned) > the exported files 1`] = `
+{
+  "events.csv": "client,type,serverTimeMs,relTimeS,action,details
+C2(owner-00),COMMAND_ISSUED,1796119199980,-0.270,PLAY,{}
+C2(owner-00),COMMAND_RECEIVED,1796119200015,-0.235,PLAY,"{""playhead"":0,""originatorId"":""owner-0001-aaaa"",""serverExecutionTime"":1796119200000}"
+C1(member-0),COMMAND_RECEIVED,1796119200045,-0.205,PLAY,"{""playhead"":0,""originatorId"":""owner-0001-aaaa"",""serverExecutionTime"":1796119200000}"
+C2(owner-00),COMMAND_ISSUED,1796119204980,4.730,SEEK,{}
+C2(owner-00),COMMAND_RECEIVED,1796119205015,4.765,SEEK,"{""playhead"":5,""originatorId"":""owner-0001-aaaa"",""serverExecutionTime"":1796119205000}"
+C1(member-0),COMMAND_RECEIVED,1796119205045,4.795,SEEK,"{""playhead"":5,""originatorId"":""owner-0001-aaaa"",""serverExecutionTime"":1796119205000}"
+C2(owner-00),COMMAND_ISSUED,1796119214980,14.730,PAUSE,{}
+C2(owner-00),COMMAND_RECEIVED,1796119215015,14.765,PAUSE,"{""playhead"":15,""originatorId"":""owner-0001-aaaa"",""serverExecutionTime"":1796119215000}"
+C1(member-0),COMMAND_RECEIVED,1796119215045,14.795,PAUSE,"{""playhead"":15,""originatorId"":""owner-0001-aaaa"",""serverExecutionTime"":1796119215000}"
+",
+  "group-spread.csv": "serverTimeMs,relTimeS,spreadMs,clients,steady
+1796119200250,0.000,7.00,2,false
+1796119200750,0.500,7.00,2,false
+1796119201250,1.000,7.00,2,false
+1796119201750,1.500,7.00,2,false
+1796119202250,2.000,7.00,2,true
+1796119202750,2.500,7.00,2,true
+1796119203250,3.000,7.00,2,true
+1796119203750,3.500,7.00,2,true
+1796119204250,4.000,7.00,2,true
+1796119204750,4.500,7.00,2,true
+1796119205250,5.000,7.00,2,false
+1796119205750,5.500,7.00,2,false
+1796119206250,6.000,7.00,2,false
+1796119206750,6.500,7.00,2,false
+1796119207250,7.000,7.00,2,true
+1796119207750,7.500,7.00,2,true
+1796119208250,8.000,7.00,2,true
+1796119208750,8.500,7.00,2,true
+1796119209250,9.000,7.00,2,true
+1796119209750,9.500,7.00,2,true
+1796119210250,10.000,7.00,2,true
+1796119210750,10.500,7.00,2,true
+1796119211250,11.000,7.00,2,true
+1796119211750,11.500,7.00,2,true
+1796119212250,12.000,7.00,2,true
+1796119212750,12.500,7.00,2,true
+1796119213250,13.000,7.00,2,true
+1796119213750,13.500,7.00,2,true
+1796119214250,14.000,7.00,2,true
+1796119214750,14.500,7.00,2,true
+",
+  "recovery.csv": "command,action,client,serverExecutionTime,recoveryMs,censored
+PLAY@1796119200000,PLAY,C1(member-0),1796119200000,257,false
+PLAY@1796119200000,PLAY,C2(owner-00),1796119200000,250,false
+SEEK@1796119205000,SEEK,C1(member-0),1796119205000,7,false
+SEEK@1796119205000,SEEK,C2(owner-00),1796119205000,0,false
+PAUSE@1796119215000,PAUSE,C1(member-0),1796119215000,7,false
+PAUSE@1796119215000,PAUSE,C2(owner-00),1796119215000,0,false
+",
+  "samples.csv": "client,serverTimeMs,relTimeS,state,localPaused,driftMs,signedDriftMs,uncorrectedDriftMs,actualS,expectedS,clockOffsetMs,clockRttMs,controlClock,periodicCorrection,steady
+C2(owner-00),1796119200250,0.000,PLAYING,false,8.00,8.00,11.00,0.25,0.25,-3,12,server,true,false
+C1(member-0),1796119200257,0.007,PLAYING,false,30.00,-30.00,33.00,0.25,0.25,250,40,server,true,false
+C2(owner-00),1796119200500,0.250,PLAYING,false,8.00,8.00,11.00,0.5,0.5,-3,12,server,true,false
+C1(member-0),1796119200507,0.257,PLAYING,false,30.00,-30.00,33.00,0.5,0.5,250,40,server,true,false
+C2(owner-00),1796119200750,0.500,PLAYING,false,8.00,8.00,11.00,0.75,0.75,-3,12,server,true,false
+C1(member-0),1796119200757,0.507,PLAYING,false,30.00,-30.00,33.00,0.75,0.75,250,40,server,true,false
+C2(owner-00),1796119201000,0.750,PLAYING,false,8.00,8.00,11.00,1,1,-3,12,server,true,false
+C1(member-0),1796119201007,0.757,PLAYING,false,30.00,-30.00,33.00,1,1,250,40,server,true,false
+C2(owner-00),1796119201250,1.000,PLAYING,false,8.00,8.00,11.00,1.25,1.25,-3,12,server,true,false
+C1(member-0),1796119201257,1.007,PLAYING,false,30.00,-30.00,33.00,1.25,1.25,250,40,server,true,false
+C2(owner-00),1796119201500,1.250,PLAYING,false,8.00,8.00,11.00,1.5,1.5,-3,12,server,true,false
+C1(member-0),1796119201507,1.257,PLAYING,false,30.00,-30.00,33.00,1.5,1.5,250,40,server,true,false
+C2(owner-00),1796119201750,1.500,PLAYING,false,8.00,8.00,11.00,1.75,1.75,-3,12,server,true,false
+C1(member-0),1796119201757,1.507,PLAYING,false,30.00,-30.00,33.00,1.75,1.75,250,40,server,true,false
+C2(owner-00),1796119202000,1.750,PLAYING,false,8.00,8.00,11.00,2,2,-3,12,server,true,true
+C1(member-0),1796119202007,1.757,PLAYING,false,30.00,-30.00,33.00,2,2,250,40,server,true,true
+C2(owner-00),1796119202250,2.000,PLAYING,false,8.00,8.00,11.00,2.25,2.25,-3,12,server,true,true
+C1(member-0),1796119202257,2.007,PLAYING,false,30.00,-30.00,33.00,2.25,2.25,250,40,server,true,true
+C2(owner-00),1796119202500,2.250,PLAYING,false,8.00,8.00,11.00,2.5,2.5,-3,12,server,true,true
+C1(member-0),1796119202507,2.257,PLAYING,false,30.00,-30.00,33.00,2.5,2.5,250,40,server,true,true
+C2(owner-00),1796119202750,2.500,PLAYING,false,8.00,8.00,11.00,2.75,2.75,-3,12,server,true,true
+C1(member-0),1796119202757,2.507,PLAYING,false,30.00,-30.00,33.00,2.75,2.75,250,40,server,true,true
+C2(owner-00),1796119203000,2.750,PLAYING,false,8.00,8.00,11.00,3,3,-3,12,server,true,true
+C1(member-0),1796119203007,2.757,PLAYING,false,30.00,-30.00,33.00,3,3,250,40,server,true,true
+C2(owner-00),1796119203250,3.000,PLAYING,false,8.00,8.00,11.00,3.25,3.25,-3,12,server,true,true
+C1(member-0),1796119203257,3.007,PLAYING,false,30.00,-30.00,33.00,3.25,3.25,250,40,server,true,true
+C2(owner-00),1796119203500,3.250,PLAYING,false,8.00,8.00,11.00,3.5,3.5,-3,12,server,true,true
+C1(member-0),1796119203507,3.257,PLAYING,false,30.00,-30.00,33.00,3.5,3.5,250,40,server,true,true
+C2(owner-00),1796119203750,3.500,PLAYING,false,8.00,8.00,11.00,3.75,3.75,-3,12,server,true,true
+C1(member-0),1796119203757,3.507,PLAYING,false,30.00,-30.00,33.00,3.75,3.75,250,40,server,true,true
+C2(owner-00),1796119204000,3.750,PLAYING,false,8.00,8.00,11.00,4,4,-3,12,server,true,true
+C1(member-0),1796119204007,3.757,PLAYING,false,30.00,-30.00,33.00,4,4,250,40,server,true,true
+C2(owner-00),1796119204250,4.000,PLAYING,false,8.00,8.00,11.00,4.25,4.25,-3,12,server,true,true
+C1(member-0),1796119204257,4.007,PLAYING,false,30.00,-30.00,33.00,4.25,4.25,250,40,server,true,true
+C2(owner-00),1796119204500,4.250,PLAYING,false,8.00,8.00,11.00,4.5,4.5,-3,12,server,true,true
+C1(member-0),1796119204507,4.257,PLAYING,false,30.00,-30.00,33.00,4.5,4.5,250,40,server,true,true
+C2(owner-00),1796119204750,4.500,PLAYING,false,8.00,8.00,11.00,4.75,4.75,-3,12,server,true,true
+C1(member-0),1796119204757,4.507,PLAYING,false,30.00,-30.00,33.00,4.75,4.75,250,40,server,true,true
+C2(owner-00),1796119205000,4.750,PLAYING,false,8.00,8.00,11.00,5,5,-3,12,server,true,false
+C1(member-0),1796119205007,4.757,PLAYING,false,30.00,-30.00,33.00,5,5,250,40,server,true,false
+C2(owner-00),1796119205250,5.000,PLAYING,false,8.00,8.00,11.00,5.25,5.25,-3,12,server,true,false
+C1(member-0),1796119205257,5.007,PLAYING,false,30.00,-30.00,33.00,5.25,5.25,250,40,server,true,false
+C2(owner-00),1796119205500,5.250,PLAYING,false,8.00,8.00,11.00,5.5,5.5,-3,12,server,true,false
+C1(member-0),1796119205507,5.257,PLAYING,false,30.00,-30.00,33.00,5.5,5.5,250,40,server,true,false
+C2(owner-00),1796119205750,5.500,PLAYING,false,8.00,8.00,11.00,5.75,5.75,-3,12,server,true,false
+C1(member-0),1796119205757,5.507,PLAYING,false,30.00,-30.00,33.00,5.75,5.75,250,40,server,true,false
+C2(owner-00),1796119206000,5.750,PLAYING,false,8.00,8.00,11.00,6,6,-3,12,server,true,false
+C1(member-0),1796119206007,5.757,PLAYING,false,30.00,-30.00,33.00,6,6,250,40,server,true,false
+C2(owner-00),1796119206250,6.000,PLAYING,false,8.00,8.00,11.00,6.25,6.25,-3,12,server,true,false
+C1(member-0),1796119206257,6.007,PLAYING,false,30.00,-30.00,33.00,6.25,6.25,250,40,server,true,false
+C2(owner-00),1796119206500,6.250,PLAYING,false,8.00,8.00,11.00,6.5,6.5,-3,12,server,true,false
+C1(member-0),1796119206507,6.257,PLAYING,false,30.00,-30.00,33.00,6.5,6.5,250,40,server,true,false
+C2(owner-00),1796119206750,6.500,PLAYING,false,8.00,8.00,11.00,6.75,6.75,-3,12,server,true,false
+C1(member-0),1796119206757,6.507,PLAYING,false,30.00,-30.00,33.00,6.75,6.75,250,40,server,true,false
+C2(owner-00),1796119207000,6.750,PLAYING,false,8.00,8.00,11.00,7,7,-3,12,server,true,true
+C1(member-0),1796119207007,6.757,PLAYING,false,30.00,-30.00,33.00,7,7,250,40,server,true,true
+C2(owner-00),1796119207250,7.000,PLAYING,false,8.00,8.00,11.00,7.25,7.25,-3,12,server,true,true
+C1(member-0),1796119207257,7.007,PLAYING,false,30.00,-30.00,33.00,7.25,7.25,250,40,server,true,true
+C2(owner-00),1796119207500,7.250,PLAYING,false,8.00,8.00,11.00,7.5,7.5,-3,12,server,true,true
+C1(member-0),1796119207507,7.257,PLAYING,false,30.00,-30.00,33.00,7.5,7.5,250,40,server,true,true
+C2(owner-00),1796119207750,7.500,PLAYING,false,8.00,8.00,11.00,7.75,7.75,-3,12,server,true,true
+C1(member-0),1796119207757,7.507,PLAYING,false,30.00,-30.00,33.00,7.75,7.75,250,40,server,true,true
+C2(owner-00),1796119208000,7.750,PLAYING,false,8.00,8.00,11.00,8,8,-3,12,server,true,true
+C1(member-0),1796119208007,7.757,PLAYING,false,600.00,-600.00,603.00,8,8,250,40,server,true,true
+C2(owner-00),1796119208250,8.000,PLAYING,false,8.00,8.00,11.00,8.25,8.25,-3,12,server,true,true
+C1(member-0),1796119208257,8.007,PLAYING,false,600.00,-600.00,603.00,8.25,8.25,250,40,server,true,true
+C2(owner-00),1796119208500,8.250,PLAYING,false,8.00,8.00,11.00,8.5,8.5,-3,12,server,true,true
+C1(member-0),1796119208507,8.257,PLAYING,false,600.00,-600.00,603.00,8.5,8.5,250,40,server,true,true
+C2(owner-00),1796119208750,8.500,PLAYING,false,8.00,8.00,11.00,8.75,8.75,-3,12,server,true,true
+C1(member-0),1796119208757,8.507,PLAYING,false,600.00,-600.00,603.00,8.75,8.75,250,40,server,true,true
+C2(owner-00),1796119209000,8.750,PLAYING,false,8.00,8.00,11.00,9,9,-3,12,server,true,true
+C1(member-0),1796119209007,8.757,PLAYING,false,30.00,-30.00,33.00,9,9,250,40,server,true,true
+C2(owner-00),1796119209250,9.000,PLAYING,false,8.00,8.00,11.00,9.25,9.25,-3,12,server,true,true
+C1(member-0),1796119209257,9.007,PLAYING,false,30.00,-30.00,33.00,9.25,9.25,250,40,server,true,true
+C2(owner-00),1796119209500,9.250,PLAYING,false,8.00,8.00,11.00,9.5,9.5,-3,12,server,true,true
+C1(member-0),1796119209507,9.257,PLAYING,false,30.00,-30.00,33.00,9.5,9.5,250,40,server,true,true
+C2(owner-00),1796119209750,9.500,PLAYING,false,8.00,8.00,11.00,9.75,9.75,-3,12,server,true,true
+C1(member-0),1796119209757,9.507,PLAYING,false,30.00,-30.00,33.00,9.75,9.75,250,40,server,true,true
+C2(owner-00),1796119210000,9.750,PLAYING,false,8.00,8.00,11.00,10,10,-3,12,server,true,true
+C1(member-0),1796119210007,9.757,PLAYING,false,30.00,-30.00,33.00,10,10,250,40,server,true,true
+C2(owner-00),1796119210250,10.000,PLAYING,false,8.00,8.00,11.00,10.25,10.25,-3,12,server,true,true
+C1(member-0),1796119210257,10.007,PLAYING,false,30.00,-30.00,33.00,10.25,10.25,250,40,server,true,true
+C2(owner-00),1796119210500,10.250,PLAYING,false,8.00,8.00,11.00,10.5,10.5,-3,12,server,true,true
+C1(member-0),1796119210507,10.257,PLAYING,false,30.00,-30.00,33.00,10.5,10.5,250,40,server,true,true
+C2(owner-00),1796119210750,10.500,PLAYING,false,8.00,8.00,11.00,10.75,10.75,-3,12,server,true,true
+C1(member-0),1796119210757,10.507,PLAYING,false,30.00,-30.00,33.00,10.75,10.75,250,40,server,true,true
+C2(owner-00),1796119211000,10.750,PLAYING,false,8.00,8.00,11.00,11,11,-3,12,server,true,true
+C1(member-0),1796119211007,10.757,PLAYING,false,30.00,-30.00,33.00,11,11,250,40,server,true,true
+C2(owner-00),1796119211250,11.000,PLAYING,false,8.00,8.00,11.00,11.25,11.25,-3,12,server,true,true
+C1(member-0),1796119211257,11.007,PLAYING,false,30.00,-30.00,33.00,11.25,11.25,250,40,server,true,true
+C2(owner-00),1796119211500,11.250,PLAYING,false,8.00,8.00,11.00,11.5,11.5,-3,12,server,true,true
+C1(member-0),1796119211507,11.257,PLAYING,false,30.00,-30.00,33.00,11.5,11.5,250,40,server,true,true
+C2(owner-00),1796119211750,11.500,PLAYING,false,8.00,8.00,11.00,11.75,11.75,-3,12,server,true,true
+C1(member-0),1796119211757,11.507,PLAYING,false,30.00,-30.00,33.00,11.75,11.75,250,40,server,true,true
+C2(owner-00),1796119212000,11.750,PLAYING,false,8.00,8.00,11.00,12,12,-3,12,server,true,true
+C1(member-0),1796119212007,11.757,PLAYING,false,30.00,-30.00,33.00,12,12,250,40,server,true,true
+C2(owner-00),1796119212250,12.000,PLAYING,false,8.00,8.00,11.00,12.25,12.25,-3,12,server,true,true
+C1(member-0),1796119212257,12.007,PLAYING,false,30.00,-30.00,33.00,12.25,12.25,250,40,server,true,true
+C2(owner-00),1796119212500,12.250,PLAYING,false,8.00,8.00,11.00,12.5,12.5,-3,12,server,true,true
+C1(member-0),1796119212507,12.257,PLAYING,false,30.00,-30.00,33.00,12.5,12.5,250,40,server,true,true
+C2(owner-00),1796119212750,12.500,PLAYING,false,8.00,8.00,11.00,12.75,12.75,-3,12,server,true,true
+C1(member-0),1796119212757,12.507,PLAYING,false,30.00,-30.00,33.00,12.75,12.75,250,40,server,true,true
+C2(owner-00),1796119213000,12.750,PLAYING,false,8.00,8.00,11.00,13,13,-3,12,server,true,true
+C1(member-0),1796119213007,12.757,PLAYING,false,30.00,-30.00,33.00,13,13,250,40,server,true,true
+C2(owner-00),1796119213250,13.000,PLAYING,false,8.00,8.00,11.00,13.25,13.25,-3,12,server,true,true
+C1(member-0),1796119213257,13.007,PLAYING,false,30.00,-30.00,33.00,13.25,13.25,250,40,server,true,true
+C2(owner-00),1796119213500,13.250,PLAYING,false,8.00,8.00,11.00,13.5,13.5,-3,12,server,true,true
+C1(member-0),1796119213507,13.257,PLAYING,false,30.00,-30.00,33.00,13.5,13.5,250,40,server,true,true
+C2(owner-00),1796119213750,13.500,PLAYING,false,8.00,8.00,11.00,13.75,13.75,-3,12,server,true,true
+C1(member-0),1796119213757,13.507,PLAYING,false,30.00,-30.00,33.00,13.75,13.75,250,40,server,true,true
+C2(owner-00),1796119214000,13.750,PLAYING,false,8.00,8.00,11.00,14,14,-3,12,server,true,true
+C1(member-0),1796119214007,13.757,PLAYING,false,30.00,-30.00,33.00,14,14,250,40,server,true,true
+C2(owner-00),1796119214250,14.000,PLAYING,false,8.00,8.00,11.00,14.25,14.25,-3,12,server,true,true
+C1(member-0),1796119214257,14.007,PLAYING,false,30.00,-30.00,33.00,14.25,14.25,250,40,server,true,true
+C2(owner-00),1796119214500,14.250,PLAYING,false,8.00,8.00,11.00,14.5,14.5,-3,12,server,true,true
+C1(member-0),1796119214507,14.257,PLAYING,false,30.00,-30.00,33.00,14.5,14.5,250,40,server,true,true
+C2(owner-00),1796119214750,14.500,PLAYING,false,8.00,8.00,11.00,14.75,14.75,-3,12,server,true,true
+C1(member-0),1796119214757,14.507,PLAYING,false,30.00,-30.00,33.00,14.75,14.75,250,40,server,true,true
+C2(owner-00),1796119215000,14.750,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,false
+C1(member-0),1796119215007,14.757,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,false
+C2(owner-00),1796119215250,15.000,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,false
+C1(member-0),1796119215257,15.007,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,false
+C2(owner-00),1796119215500,15.250,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,false
+C1(member-0),1796119215507,15.257,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,false
+C2(owner-00),1796119215750,15.500,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,false
+C1(member-0),1796119215757,15.507,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,false
+C2(owner-00),1796119216000,15.750,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,false
+C1(member-0),1796119216007,15.757,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,false
+C2(owner-00),1796119216250,16.000,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,false
+C1(member-0),1796119216257,16.007,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,false
+C2(owner-00),1796119216500,16.250,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,false
+C1(member-0),1796119216507,16.257,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,false
+C2(owner-00),1796119216750,16.500,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,false
+C1(member-0),1796119216757,16.507,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,false
+C2(owner-00),1796119217000,16.750,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,true
+C1(member-0),1796119217007,16.757,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,true
+C2(owner-00),1796119217250,17.000,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,true
+C1(member-0),1796119217257,17.007,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,true
+C2(owner-00),1796119217500,17.250,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,true
+C1(member-0),1796119217507,17.257,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,true
+C2(owner-00),1796119217750,17.500,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,true
+C1(member-0),1796119217757,17.507,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,true
+C2(owner-00),1796119218000,17.750,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,true
+C1(member-0),1796119218007,17.757,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,true
+C2(owner-00),1796119218250,18.000,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,true
+C1(member-0),1796119218257,18.007,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,true
+C2(owner-00),1796119218500,18.250,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,true
+C1(member-0),1796119218507,18.257,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,true
+C2(owner-00),1796119218750,18.500,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,true
+C1(member-0),1796119218757,18.507,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,true
+C2(owner-00),1796119219000,18.750,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,true
+C1(member-0),1796119219007,18.757,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,true
+C2(owner-00),1796119219250,19.000,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,true
+C1(member-0),1796119219257,19.007,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,true
+C2(owner-00),1796119219500,19.250,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,true
+C1(member-0),1796119219507,19.257,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,true
+C2(owner-00),1796119219750,19.500,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,true
+C1(member-0),1796119219757,19.507,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,true
+C2(owner-00),1796119220000,19.750,PAUSED,true,2.00,2.00,5.00,15,15,-3,12,server,true,true
+C1(member-0),1796119220007,19.757,PAUSED,true,2.00,-2.00,5.00,15,15,250,40,server,true,true
+",
+  "summary.json": "{
+  "options": {
+    "toleranceMs": 250,
+    "settleMs": 2000
+  },
+  "runIds": [
+    "run-synthetic"
+  ],
+  "scenarios": [
+    "lab"
+  ],
+  "durationS": 19.757,
+  "t0": 1796119200250,
+  "sampleCount": 160,
+  "eventCount": 9,
+  "commandCount": 3,
+  "uncorrectedSampleCount": 0,
+  "controlClock": [
+    "server"
+  ],
+  "mixedControlClock": false,
+  "periodicCorrection": [
+    "on"
+  ],
+  "mixedPeriodicCorrection": false,
+  "clients": [
+    {
+      "client": "s-member",
+      "label": "C1(member-0)",
+      "owner": false,
+      "userAgent": "",
+      "controlClocks": [
+        "server"
+      ],
+      "clock": {
+        "bursts": 0,
+        "offsetMeanMs": null,
+        "offsetRangeMs": null,
+        "rttP50Ms": null,
+        "rttMaxMs": null
+      },
+      "driftAll": {
+        "count": 59,
+        "mean": 68.64406779661017,
+        "p50": 30,
+        "p95": 600,
+        "p99": 600,
+        "max": 600,
+        "sd": 143.29603856422128
+      },
+      "driftSteady": {
+        "count": 44,
+        "mean": 81.81818181818181,
+        "p50": 30,
+        "p95": 600,
+        "p99": 600,
+        "max": 600,
+        "sd": 163.86347875417968
+      },
+      "uncorrectedSteady": {
+        "count": 44,
+        "mean": 84.81818181818181,
+        "p50": 33,
+        "p95": 603,
+        "p99": 603,
+        "max": 603,
+        "sd": 163.86347875417968
+      },
+      "signedSteadyMean": -81.81818181818181,
+      "withinSteady": [
+        {
+          "thresholdMs": 50,
+          "share": 0.9090909090909091
+        },
+        {
+          "thresholdMs": 100,
+          "share": 0.9090909090909091
+        },
+        {
+          "thresholdMs": 250,
+          "share": 0.9090909090909091
+        },
+        {
+          "thresholdMs": 500,
+          "share": 0.9090909090909091
+        }
+      ]
+    },
+    {
+      "client": "s-owner",
+      "label": "C2(owner-00)",
+      "owner": true,
+      "userAgent": "",
+      "controlClocks": [
+        "server"
+      ],
+      "clock": {
+        "bursts": 0,
+        "offsetMeanMs": null,
+        "offsetRangeMs": null,
+        "rttP50Ms": null,
+        "rttMaxMs": null
+      },
+      "driftAll": {
+        "count": 59,
+        "mean": 8,
+        "p50": 8,
+        "p95": 8,
+        "p99": 8,
+        "max": 8,
+        "sd": 0
+      },
+      "driftSteady": {
+        "count": 44,
+        "mean": 8,
+        "p50": 8,
+        "p95": 8,
+        "p99": 8,
+        "max": 8,
+        "sd": 0
+      },
+      "uncorrectedSteady": {
+        "count": 44,
+        "mean": 11,
+        "p50": 11,
+        "p95": 11,
+        "p99": 11,
+        "max": 11,
+        "sd": 0
+      },
+      "signedSteadyMean": 8,
+      "withinSteady": [
+        {
+          "thresholdMs": 50,
+          "share": 1
+        },
+        {
+          "thresholdMs": 100,
+          "share": 1
+        },
+        {
+          "thresholdMs": 250,
+          "share": 1
+        },
+        {
+          "thresholdMs": 500,
+          "share": 1
+        }
+      ]
+    }
+  ],
+  "allSteady": {
+    "count": 88,
+    "mean": 44.90909090909091,
+    "p50": 19,
+    "p95": 30,
+    "p99": 600,
+    "max": 600,
+    "sd": 121.60551314165932
+  },
+  "allSteadyWithin": [
+    {
+      "thresholdMs": 50,
+      "share": 0.9545454545454546
+    },
+    {
+      "thresholdMs": 100,
+      "share": 0.9545454545454546
+    },
+    {
+      "thresholdMs": 250,
+      "share": 0.9545454545454546
+    },
+    {
+      "thresholdMs": 500,
+      "share": 0.9545454545454546
+    }
+  ],
+  "interClient": {
+    "pairs": [
+      {
+        "pair": "C1(member-0) ↔ C2(owner-00)",
+        "all": {
+          "count": 59,
+          "mean": 6.999999999999758,
+          "p50": 6.999999999999673,
+          "p95": 7.000000000000117,
+          "p99": 7.000000000000117,
+          "max": 7.000000000000117,
+          "sd": 1.6513865210097966e-13
+        },
+        "steady": {
+          "count": 44,
+          "mean": 6.999999999999748,
+          "p50": 6.999999999999673,
+          "p95": 7.000000000000117,
+          "p99": 7.000000000000117,
+          "max": 7.000000000000117,
+          "sd": 1.713927039268724e-13
+        }
+      }
+    ],
+    "allPairsSteady": {
+      "count": 44,
+      "mean": 6.999999999999748,
+      "p50": 6.999999999999673,
+      "p95": 7.000000000000117,
+      "p99": 7.000000000000117,
+      "max": 7.000000000000117,
+      "sd": 1.713927039268724e-13
+    },
+    "allPairsWithin": [
+      {
+        "thresholdMs": 50,
+        "share": 1
+      },
+      {
+        "thresholdMs": 100,
+        "share": 1
+      },
+      {
+        "thresholdMs": 250,
+        "share": 1
+      },
+      {
+        "thresholdMs": 500,
+        "share": 1
+      }
+    ],
+    "groupSpreadSteady": {
+      "count": 22,
+      "mean": 6.999999999999753,
+      "p50": 6.999999999999673,
+      "p95": 7.000000000000117,
+      "p99": 7.000000000000117,
+      "max": 7.000000000000117,
+      "sd": 1.712847168063949e-13
+    },
+    "groupSpreadAll": {
+      "count": 30,
+      "mean": 6.999999999999767,
+      "p50": 6.999999999999673,
+      "p95": 7.000000000000117,
+      "p99": 7.000000000000117,
+      "max": 7.000000000000117,
+      "sd": 1.6650522696516862e-13
+    }
+  },
+  "latency": {
+    "issueToServer": {
+      "count": 3,
+      "mean": 20,
+      "p50": 20,
+      "p95": 20,
+      "p99": 20,
+      "max": 20,
+      "sd": 0
+    },
+    "serverToReceive": null,
+    "applyByAction": {
+      "PLAY": null,
+      "PAUSE": null,
+      "SEEK": null
+    },
+    "correctionSeeks": 0,
+    "periodicCorrectionSeeks": 0,
+    "periodicCorrections": 0,
+    "supersededCommands": 0,
+    "reconcileFailures": 0
+  },
+  "snapshotSync": {
+    "rows": [],
+    "stats": null,
+    "notSynced": 0
+  },
+  "recovery": {
+    "byAction": {
+      "PLAY": {
+        "count": 2,
+        "mean": 253.5,
+        "p50": 253.5,
+        "p95": 256.65,
+        "p99": 256.93,
+        "max": 257,
+        "sd": 3.5
+      },
+      "PAUSE": {
+        "count": 2,
+        "mean": 3.5,
+        "p50": 3.5,
+        "p95": 6.6499999999999995,
+        "p99": 6.93,
+        "max": 7,
+        "sd": 3.5
+      },
+      "SEEK": {
+        "count": 2,
+        "mean": 3.5,
+        "p50": 3.5,
+        "p95": 6.6499999999999995,
+        "p99": 6.93,
+        "max": 7,
+        "sd": 3.5
+      }
+    },
+    "notRecoveredByAction": {
+      "PLAY": {
+        "notRecovered": 0,
+        "total": 2
+      },
+      "PAUSE": {
+        "notRecovered": 0,
+        "total": 2
+      },
+      "SEEK": {
+        "notRecovered": 0,
+        "total": 2
+      }
+    },
+    "group": {
+      "count": 3,
+      "mean": 90.33333333333333,
+      "p50": 7,
+      "p95": 231.99999999999997,
+      "p99": 252,
+      "max": 257,
+      "sd": 117.85113019775793
+    },
+    "censored": 0,
+    "total": 6
+  }
+}",
+}
+`;
+
+exports[`analyzeRun (pinned) > the key metrics 1`] = `
+[
+  {
+    "key": "clients",
+    "label": "Clients",
+    "unit": "count",
+    "value": 2,
+  },
+  {
+    "key": "duration",
+    "label": "Duration",
+    "unit": "s",
+    "value": 19.757,
+  },
+  {
+    "key": "controlClock",
+    "label": "Control clock",
+    "unit": "text",
+    "value": "server",
+  },
+  {
+    "key": "periodicCorrection",
+    "label": "Periodic correction",
+    "unit": "text",
+    "value": "on",
+  },
+  {
+    "key": "pairP50",
+    "label": "Inter-client drift p50",
+    "lowerIsBetter": true,
+    "unit": "ms",
+    "value": 6.999999999999673,
+  },
+  {
+    "key": "pairP95",
+    "label": "Inter-client drift p95",
+    "lowerIsBetter": true,
+    "unit": "ms",
+    "value": 7.000000000000117,
+  },
+  {
+    "key": "pairMax",
+    "label": "Inter-client drift max",
+    "lowerIsBetter": true,
+    "unit": "ms",
+    "value": 7.000000000000117,
+  },
+  {
+    "key": "pairWithin",
+    "label": "Pairs within 250 ms",
+    "lowerIsBetter": false,
+    "unit": "%",
+    "value": 100,
+  },
+  {
+    "key": "spreadP95",
+    "label": "Group spread p95",
+    "lowerIsBetter": true,
+    "unit": "ms",
+    "value": 7.000000000000117,
+  },
+  {
+    "key": "driftP50",
+    "label": "Drift vs expected p50",
+    "lowerIsBetter": true,
+    "unit": "ms",
+    "value": 19,
+  },
+  {
+    "key": "driftP95",
+    "label": "Drift vs expected p95",
+    "lowerIsBetter": true,
+    "unit": "ms",
+    "value": 30,
+  },
+  {
+    "key": "driftWithin",
+    "label": "Samples within 250 ms",
+    "lowerIsBetter": false,
+    "unit": "%",
+    "value": 95.45454545454545,
+  },
+  {
+    "key": "recoveryP50",
+    "label": "Group recovery p50",
+    "lowerIsBetter": true,
+    "unit": "ms",
+    "value": 7,
+  },
+  {
+    "key": "recoveryP95",
+    "label": "Group recovery p95",
+    "lowerIsBetter": true,
+    "unit": "ms",
+    "value": 231.99999999999997,
+  },
+  {
+    "key": "notRecovered",
+    "label": "Not recovered before next command",
+    "lowerIsBetter": true,
+    "unit": "count",
+    "value": 0,
+  },
+  {
+    "key": "deliveryP50",
+    "label": "Server → client delivery p50",
+    "lowerIsBetter": true,
+    "unit": "ms",
+    "value": null,
+  },
+  {
+    "key": "deliveryP95",
+    "label": "Server → client delivery p95",
+    "lowerIsBetter": true,
+    "unit": "ms",
+    "value": null,
+  },
+  {
+    "key": "clockUncertainty",
+    "label": "Clock uncertainty (worst client)",
+    "lowerIsBetter": true,
+    "unit": "ms",
+    "value": null,
+  },
+  {
+    "key": "joinSyncP95",
+    "label": "Join/reconnect sync p95",
+    "lowerIsBetter": true,
+    "unit": "ms",
+    "value": null,
+  },
+  {
+    "key": "corrections",
+    "label": "Correction seeks",
+    "lowerIsBetter": true,
+    "unit": "count",
+    "value": 0,
+  },
+  {
+    "key": "periodicCorrections",
+    "label": "Periodic corrections",
+    "lowerIsBetter": true,
+    "unit": "count",
+    "value": 0,
+  },
+  {
+    "key": "failures",
+    "label": "Reconcile failures",
+    "lowerIsBetter": true,
+    "unit": "count",
+    "value": 0,
+  },
+]
+`;
+
+exports[`analyzeRun (pinned) > the summary JSON 1`] = `
+{
+  "allSteady": {
+    "count": 88,
+    "max": 600,
+    "mean": 44.90909090909091,
+    "p50": 19,
+    "p95": 30,
+    "p99": 600,
+    "sd": 121.60551314165932,
+  },
+  "allSteadyWithin": [
+    {
+      "share": 0.9545454545454546,
+      "thresholdMs": 50,
+    },
+    {
+      "share": 0.9545454545454546,
+      "thresholdMs": 100,
+    },
+    {
+      "share": 0.9545454545454546,
+      "thresholdMs": 250,
+    },
+    {
+      "share": 0.9545454545454546,
+      "thresholdMs": 500,
+    },
+  ],
+  "clients": [
+    {
+      "client": "s-member",
+      "clock": {
+        "bursts": 0,
+        "offsetMeanMs": null,
+        "offsetRangeMs": null,
+        "rttMaxMs": null,
+        "rttP50Ms": null,
+      },
+      "controlClocks": [
+        "server",
+      ],
+      "driftAll": {
+        "count": 59,
+        "max": 600,
+        "mean": 68.64406779661017,
+        "p50": 30,
+        "p95": 600,
+        "p99": 600,
+        "sd": 143.29603856422128,
+      },
+      "driftSteady": {
+        "count": 44,
+        "max": 600,
+        "mean": 81.81818181818181,
+        "p50": 30,
+        "p95": 600,
+        "p99": 600,
+        "sd": 163.86347875417968,
+      },
+      "label": "C1(member-0)",
+      "owner": false,
+      "signedSteadyMean": -81.81818181818181,
+      "uncorrectedSteady": {
+        "count": 44,
+        "max": 603,
+        "mean": 84.81818181818181,
+        "p50": 33,
+        "p95": 603,
+        "p99": 603,
+        "sd": 163.86347875417968,
+      },
+      "userAgent": "",
+      "withinSteady": [
+        {
+          "share": 0.9090909090909091,
+          "thresholdMs": 50,
+        },
+        {
+          "share": 0.9090909090909091,
+          "thresholdMs": 100,
+        },
+        {
+          "share": 0.9090909090909091,
+          "thresholdMs": 250,
+        },
+        {
+          "share": 0.9090909090909091,
+          "thresholdMs": 500,
+        },
+      ],
+    },
+    {
+      "client": "s-owner",
+      "clock": {
+        "bursts": 0,
+        "offsetMeanMs": null,
+        "offsetRangeMs": null,
+        "rttMaxMs": null,
+        "rttP50Ms": null,
+      },
+      "controlClocks": [
+        "server",
+      ],
+      "driftAll": {
+        "count": 59,
+        "max": 8,
+        "mean": 8,
+        "p50": 8,
+        "p95": 8,
+        "p99": 8,
+        "sd": 0,
+      },
+      "driftSteady": {
+        "count": 44,
+        "max": 8,
+        "mean": 8,
+        "p50": 8,
+        "p95": 8,
+        "p99": 8,
+        "sd": 0,
+      },
+      "label": "C2(owner-00)",
+      "owner": true,
+      "signedSteadyMean": 8,
+      "uncorrectedSteady": {
+        "count": 44,
+        "max": 11,
+        "mean": 11,
+        "p50": 11,
+        "p95": 11,
+        "p99": 11,
+        "sd": 0,
+      },
+      "userAgent": "",
+      "withinSteady": [
+        {
+          "share": 1,
+          "thresholdMs": 50,
+        },
+        {
+          "share": 1,
+          "thresholdMs": 100,
+        },
+        {
+          "share": 1,
+          "thresholdMs": 250,
+        },
+        {
+          "share": 1,
+          "thresholdMs": 500,
+        },
+      ],
+    },
+  ],
+  "commandCount": 3,
+  "controlClock": [
+    "server",
+  ],
+  "durationS": 19.757,
+  "eventCount": 9,
+  "interClient": {
+    "allPairsSteady": {
+      "count": 44,
+      "max": 7.000000000000117,
+      "mean": 6.999999999999748,
+      "p50": 6.999999999999673,
+      "p95": 7.000000000000117,
+      "p99": 7.000000000000117,
+      "sd": 1.713927039268724e-13,
+    },
+    "allPairsWithin": [
+      {
+        "share": 1,
+        "thresholdMs": 50,
+      },
+      {
+        "share": 1,
+        "thresholdMs": 100,
+      },
+      {
+        "share": 1,
+        "thresholdMs": 250,
+      },
+      {
+        "share": 1,
+        "thresholdMs": 500,
+      },
+    ],
+    "groupSpreadAll": {
+      "count": 30,
+      "max": 7.000000000000117,
+      "mean": 6.999999999999767,
+      "p50": 6.999999999999673,
+      "p95": 7.000000000000117,
+      "p99": 7.000000000000117,
+      "sd": 1.6650522696516862e-13,
+    },
+    "groupSpreadSteady": {
+      "count": 22,
+      "max": 7.000000000000117,
+      "mean": 6.999999999999753,
+      "p50": 6.999999999999673,
+      "p95": 7.000000000000117,
+      "p99": 7.000000000000117,
+      "sd": 1.712847168063949e-13,
+    },
+    "pairs": [
+      {
+        "all": {
+          "count": 59,
+          "max": 7.000000000000117,
+          "mean": 6.999999999999758,
+          "p50": 6.999999999999673,
+          "p95": 7.000000000000117,
+          "p99": 7.000000000000117,
+          "sd": 1.6513865210097966e-13,
+        },
+        "pair": "C1(member-0) ↔ C2(owner-00)",
+        "steady": {
+          "count": 44,
+          "max": 7.000000000000117,
+          "mean": 6.999999999999748,
+          "p50": 6.999999999999673,
+          "p95": 7.000000000000117,
+          "p99": 7.000000000000117,
+          "sd": 1.713927039268724e-13,
+        },
+      },
+    ],
+  },
+  "latency": {
+    "applyByAction": {
+      "PAUSE": null,
+      "PLAY": null,
+      "SEEK": null,
+    },
+    "correctionSeeks": 0,
+    "issueToServer": {
+      "count": 3,
+      "max": 20,
+      "mean": 20,
+      "p50": 20,
+      "p95": 20,
+      "p99": 20,
+      "sd": 0,
+    },
+    "periodicCorrectionSeeks": 0,
+    "periodicCorrections": 0,
+    "reconcileFailures": 0,
+    "serverToReceive": null,
+    "supersededCommands": 0,
+  },
+  "mixedControlClock": false,
+  "mixedPeriodicCorrection": false,
+  "options": {
+    "settleMs": 2000,
+    "toleranceMs": 250,
+  },
+  "periodicCorrection": [
+    "on",
+  ],
+  "recovery": {
+    "byAction": {
+      "PAUSE": {
+        "count": 2,
+        "max": 7,
+        "mean": 3.5,
+        "p50": 3.5,
+        "p95": 6.6499999999999995,
+        "p99": 6.93,
+        "sd": 3.5,
+      },
+      "PLAY": {
+        "count": 2,
+        "max": 257,
+        "mean": 253.5,
+        "p50": 253.5,
+        "p95": 256.65,
+        "p99": 256.93,
+        "sd": 3.5,
+      },
+      "SEEK": {
+        "count": 2,
+        "max": 7,
+        "mean": 3.5,
+        "p50": 3.5,
+        "p95": 6.6499999999999995,
+        "p99": 6.93,
+        "sd": 3.5,
+      },
+    },
+    "censored": 0,
+    "group": {
+      "count": 3,
+      "max": 257,
+      "mean": 90.33333333333333,
+      "p50": 7,
+      "p95": 231.99999999999997,
+      "p99": 252,
+      "sd": 117.85113019775793,
+    },
+    "notRecoveredByAction": {
+      "PAUSE": {
+        "notRecovered": 0,
+        "total": 2,
+      },
+      "PLAY": {
+        "notRecovered": 0,
+        "total": 2,
+      },
+      "SEEK": {
+        "notRecovered": 0,
+        "total": 2,
+      },
+    },
+    "total": 6,
+  },
+  "runIds": [
+    "run-synthetic",
+  ],
+  "sampleCount": 160,
+  "scenarios": [
+    "lab",
+  ],
+  "snapshotSync": {
+    "notSynced": 0,
+    "rows": [],
+    "stats": null,
+  },
+  "t0": 1796119200250,
+  "uncorrectedSampleCount": 0,
+}
+`;
+
+exports[`analyzeRun (pinned) > the text report 1`] = `
+"
+=== SynchroStream sync run analysis ===
+Run(s):     run-synthetic   scenario: lab
+Duration:   19.8 s   samples=160  events=9  commands=3
+Tolerance:  250 ms   settle window: 2000 ms
+Clients:
+  C1(member-0)  session=s-member    control clock: server
+  C2(owner-00) [owner]  session=s-owner    control clock: server
+Control clock: server
+Periodic correction: on
+
+--- 1. Clock synchronization (offset = server − client) ---
+  C1(member-0)     bursts=0  offset mean=- ms (range -)  best-probe RTT p50=- ms → uncertainty ≈ ±- ms
+  C2(owner-00)     bursts=0  offset mean=- ms (range -)  best-probe RTT p50=- ms → uncertainty ≈ ±- ms
+
+--- 2. Drift from the expected timeline (server clock), PLAYING ---
+  C1(member-0) all                 n=   59  mean=   68.6  p50=   30.0  p95=  600.0  p99=  600.0  max=  600.0  sd= 143.3
+  C1(member-0) steady              n=   44  mean=   81.8  p50=   30.0  p95=  600.0  p99=  600.0  max=  600.0  sd= 163.9
+                                   ≤50ms 90.9%  ≤100ms 90.9%  ≤250ms 90.9%  ≤500ms 90.9%
+                                   without clock correction: mean=84.8 p95=603.0 ms   signed mean=-81.8 ms (+ = behind)
+  C2(owner-00) all                 n=   59  mean=    8.0  p50=    8.0  p95=    8.0  p99=    8.0  max=    8.0  sd=   0.0
+  C2(owner-00) steady              n=   44  mean=    8.0  p50=    8.0  p95=    8.0  p99=    8.0  max=    8.0  sd=   0.0
+                                   ≤50ms 100.0%  ≤100ms 100.0%  ≤250ms 100.0%  ≤500ms 100.0%
+                                   without clock correction: mean=11.0 p95=11.0 ms   signed mean=8.0 ms (+ = behind)
+  ALL CLIENTS steady               n=   88  mean=   44.9  p50=   19.0  p95=   30.0  p99=  600.0  max=  600.0  sd= 121.6
+                                   ≤50ms 95.5%  ≤100ms 95.5%  ≤250ms 95.5%  ≤500ms 95.5%
+
+--- 3. Inter-client drift: |position(A) − position(B)| at the same server time ---
+  C1(member-0) ↔ C2(owner-00)      n=   44  mean=    7.0  p50=    7.0  p95=    7.0  p99=    7.0  max=    7.0  sd=   0.0
+  ALL PAIRS steady                 n=   44  mean=    7.0  p50=    7.0  p95=    7.0  p99=    7.0  max=    7.0  sd=   0.0
+                                   ≤50ms 100.0%  ≤100ms 100.0%  ≤250ms 100.0%  ≤500ms 100.0%
+  GROUP SPREAD (max−min) steady    n=   22  mean=    7.0  p50=    7.0  p95=    7.0  p99=    7.0  max=    7.0  sd=   0.0
+
+--- 4. Command pipeline latency ---
+  owner issue → server stamp       n=    3  mean=   20.0  p50=   20.0  p95=   20.0  p99=   20.0  max=   20.0  sd=   0.0
+  server stamp → client receive    (no data)
+  receive → applied (PLAY)         (no data)
+  receive → applied (PAUSE)        (no data)
+  receive → applied (SEEK)         (no data)
+  correction seeks=0 (periodic 0)  periodic reconciliations=0  superseded (coalesced) commands=0  reconcile failures=0
+
+--- 5. Recovery time: server stamp → drift ≤ 250 ms (2 consecutive samples) ---
+  PLAY                             n=    2  mean=  253.5  p50=  253.5  p95=  256.6  p99=  256.9  max=  257.0  sd=   3.5  not recovered before next command: 0/2
+  PAUSE                            n=    2  mean=    3.5  p50=    3.5  p95=    6.6  p99=    6.9  max=    7.0  sd=   3.5  not recovered before next command: 0/2
+  SEEK                             n=    2  mean=    3.5  p50=    3.5  p95=    6.6  p99=    6.9  max=    7.0  sd=   3.5  not recovered before next command: 0/2
+  GROUP (slowest client)           n=    3  mean=   90.3  p50=    7.0  p95=  232.0  p99=  252.0  max=  257.0  sd= 117.9
+  Note: clients sample at 100 ms for 3 s after each command (500 ms otherwise), so resolution is ~100 ms.
+"
+`;
