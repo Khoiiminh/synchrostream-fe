@@ -7,14 +7,14 @@ import { Button, Text, Loader, Center } from "@mantine/core";
 import { useStore } from "react-redux";
 
 import { useAppSelector } from "@/store/hooks";
-import { mediaApi, useGetSoloStreamQuery } from "@/store/services/mediaApi";
+import { mediaApi, useGetSoloStreamQuery } from "@/shared/api/mediaApi";
 
 import {
     resetPlayback,
     updatePlaybackSnapshot,
 } from "@/shared/playback-sync/playbackSlice";
 
-import NavbarWrapper from "../commons/NavbarWrapper";
+import NavbarWrapper from "@/components/commons/NavbarWrapper";
 
 import { createSoloMediaController } from "@/shared/playback-sync/createSoloMediaController";
 

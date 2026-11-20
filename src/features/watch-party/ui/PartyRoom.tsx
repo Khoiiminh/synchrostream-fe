@@ -8,7 +8,7 @@ import { RoomPasswordInput } from "@/shared/ui/RoomPasswordInput";
 import ModalHeading from "@/shared/ui/ModalHeading";
 import { createLogger } from "@/shared/lib/logger";
 import { useAppSelector } from "@/store/hooks";
-import WatchClientLeaf from "@/components/watch/WatchClientLeaf";
+import { WatchClientLeaf } from "@/features/watch";
 import NavbarWrapper from "@/components/commons/NavbarWrapper";
 import { RequireAuthenticatedSession } from "@/components/auth/RequireAuthenticatedSession";
 import { useEngine } from "../engine/EngineContext";

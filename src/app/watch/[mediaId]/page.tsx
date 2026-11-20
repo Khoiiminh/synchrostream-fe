@@ -1,5 +1,5 @@
 import React from "react";
-import WatchClientLeaf from "@/components/watch/WatchClientLeaf";
+import { WatchClientLeaf } from "@/features/watch";
 import { RequireAuthenticatedSession } from "@/components/auth/RequireAuthenticatedSession";
 
 interface WatchPageProps {

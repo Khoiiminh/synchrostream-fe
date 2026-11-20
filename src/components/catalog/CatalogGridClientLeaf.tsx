@@ -12,7 +12,7 @@ import {
     Stack,
 } from "@mantine/core";
 import { RoomPasswordInput } from "@/shared/ui/RoomPasswordInput";
-import { useGetMediaCatalogQuery } from "../../store/services/mediaApi";
+import { useGetMediaCatalogQuery } from "@/shared/api/mediaApi";
 import { useRouter } from "next/navigation";
 import { LoadingPage } from "@/shared/ui/LoadingPage";
 import { useState } from "react";
