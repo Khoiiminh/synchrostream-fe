@@ -10,8 +10,8 @@ import {
     setAuthHydrated,
     setAuthUnavailable,
     setCredentials,
-} from "@/store/slices/authSlice";
-import { createLogger } from "@/core/logging/logger";
+} from "@/shared/session/authSlice";
+import { createLogger } from "@/shared/lib/logger";
 
 const log = createLogger("SessionInterceptor");
 

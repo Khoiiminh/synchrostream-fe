@@ -9,8 +9,8 @@ import {
     Maximize,
 } from "lucide-react";
 
-import { MediaSyncController } from "@/core/sync/MediaSyncController";
-import { QualityLevel } from "@/core/sync/ISyncAdapter";
+import { MediaSyncController } from "@/shared/playback-sync/MediaSyncController";
+import { QualityLevel } from "@/shared/playback-sync/ISyncAdapter";
 import PlaybackTime from "./PlaybackTime";
 import QualityMenu from "./QualityMenu";
 

@@ -4,7 +4,7 @@ import {
     FetchBaseQueryError,
     fetchBaseQuery,
 } from "@reduxjs/toolkit/query";
-import { clearCredentials } from "@/store/slices/authSlice";
+import { clearCredentials } from "@/shared/session/authSlice";
 
 export function createAuthenticatedBaseQuery(
     baseUrl: string,

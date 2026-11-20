@@ -10,13 +10,13 @@ import {
 } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Box, Button, Group, Modal, Text } from "@mantine/core";
-import { RoomPasswordInput } from "@/components/commons/RoomPasswordInput";
+import { RoomPasswordInput } from "@/shared/ui/RoomPasswordInput";
 import { KeyRound, LogOut, Mic, MicOff } from "lucide-react";
 import {
     completeBackNavigation,
     LeaveDestination,
     usePartyLeaveGuard,
-} from "@/core/navigation/leaveGuard";
+} from "@/shared/lib/leaveGuard";
 import { useAppSelector } from "@/store/hooks";
 import { useEngine } from "@/context/EngineContext";
 import WatchClientLeaf from "@/components/watch/WatchClientLeaf";
@@ -31,9 +31,9 @@ import {
 import ParticipantMediaMesh from "@/components/watch-party/ParticipantMediaMesh";
 import RoomPill from "@/components/watch-party/RoomPill";
 import { ParticipantMedia } from "@/types/participantMedia";
-import { MediaSyncController } from "@/core/sync/MediaSyncController";
+import { MediaSyncController } from "@/shared/playback-sync/MediaSyncController";
 import { RequireAuthenticatedSession } from "@/components/auth/RequireAuthenticatedSession";
-import { createLogger } from "@/core/logging/logger";
+import { createLogger } from "@/shared/lib/logger";
 import {
     ROOM_CLOSED_CODE,
     ROOM_LEFT_ELSEWHERE_CODE,
@@ -46,7 +46,7 @@ import {
     ROOM_PASSWORD_MIN_LENGTH,
     saveJoinPassword,
 } from "@/lib/roomAccessKeys";
-import ModalHeading from "@/components/commons/ModalHeading";
+import ModalHeading from "@/shared/ui/ModalHeading";
 
 const log = createLogger("PartyPage");
 

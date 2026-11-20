@@ -3,8 +3,8 @@ import {
     PlaybackCoordinator,
     type RoomPlaybackSnapshot,
 } from "./PlaybackCoordinator";
-import { RemotePlaybackGuard } from "../services/RemotePlaybackGuard";
-import { SyncMetrics } from "./SyncMetrics";
+import { RemotePlaybackGuard } from "@/shared/playback-sync/RemotePlaybackGuard";
+import { SyncMetrics } from "@/shared/playback-sync/SyncMetrics";
 
 /*
  * Behaviour of PlaybackCoordinator against a simulated player and gateway,

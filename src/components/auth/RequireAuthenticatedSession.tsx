@@ -4,7 +4,7 @@ import { Alert, Button, Center, Stack, Text } from "@mantine/core";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import { useAppSelector } from "@/store/hooks";
-import { LoadingPage } from "@/components/commons/LoadingPage";
+import { LoadingPage } from "@/shared/ui/LoadingPage";
 
 /**
  * useSearchParams() needs a Suspense boundary so pages using this guard can be
