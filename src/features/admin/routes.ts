@@ -1,6 +1,7 @@
 /*
- * Route-level entry of the admin slice: the control center and everything it
- * loads (uploads, the telemetry socket, the sync-metrics workspace). Only the
- * admin dashboard imports this.
+ * Route-level entry of the admin slice: the admin dashboard and the control
+ * center it renders (uploads, the telemetry socket, the sync-metrics
+ * workspace). Only app/dashboard/admin imports this.
  */
+export { AdminBaseWorkspace } from "./ui/AdminBaseWorkspace";
 export { AdminControlCenterLeaf } from "./ui/AdminControlCenterLeaf";

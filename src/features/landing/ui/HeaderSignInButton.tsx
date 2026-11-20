@@ -2,7 +2,7 @@
 
 import { useDisclosure } from "@mantine/hooks";
 import { Modal, Button } from "@mantine/core";
-import { AuthModalForms } from "@/components/auth/AuthModalForms";
+import { AuthModalForms } from "@/features/auth/routes";
 
 export function HeaderSignInButton() {
     const [opened, { open, close }] = useDisclosure(false);

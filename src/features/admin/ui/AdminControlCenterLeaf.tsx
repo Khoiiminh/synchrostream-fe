@@ -3,11 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-    useLogoutMutation,
-    useGetMeQuery,
-    authApi,
-} from "@/store/services/authApi";
+import { useLogoutMutation, useGetMeQuery, authApi } from "@/features/auth";
 import {
     useInitiateUploadMutation,
     useUploadPartMutation,

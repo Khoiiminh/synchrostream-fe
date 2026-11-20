@@ -1,6 +1,6 @@
 "use client";
 
-import { authApi, useLogoutMutation } from "@/store/services/authApi";
+import { authApi, useLogoutMutation } from "@/features/auth";
 import { useState } from "react";
 import { LoadingPage } from "@/shared/ui/LoadingPage";
 import { Button } from "@mantine/core";

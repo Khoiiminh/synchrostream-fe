@@ -1,6 +1,6 @@
 import React from "react";
 import { WatchClientLeaf } from "@/features/watch";
-import { RequireAuthenticatedSession } from "@/components/auth/RequireAuthenticatedSession";
+import { RequireAuthenticatedSession } from "@/features/auth";
 
 interface WatchPageProps {
     params: Promise<{

@@ -9,8 +9,8 @@ import ModalHeading from "@/shared/ui/ModalHeading";
 import { createLogger } from "@/shared/lib/logger";
 import { useAppSelector } from "@/store/hooks";
 import { WatchClientLeaf } from "@/features/watch";
-import NavbarWrapper from "@/components/commons/NavbarWrapper";
-import { RequireAuthenticatedSession } from "@/components/auth/RequireAuthenticatedSession";
+import { NavbarWrapper } from "@/features/app-shell";
+import { RequireAuthenticatedSession } from "@/features/auth";
 import { useEngine } from "../engine/EngineContext";
 import {
     consumeJoinPasswordFromUrl,

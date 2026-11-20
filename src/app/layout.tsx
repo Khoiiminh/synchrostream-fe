@@ -4,7 +4,7 @@ import "./globals.css";
 import { ColorSchemeScript, MantineProvider, createTheme } from "@mantine/core";
 import { StoreProvider } from "@/store/StoreProvider";
 import { EngineProvider } from "@/features/watch-party";
-import { SessionInterceptor } from "@/components/auth/SessionInterceptor";
+import { SessionInterceptor } from "@/features/auth";
 
 /**
  * TAILWIND & MANTINE INTEGRATION CONFIGURATION

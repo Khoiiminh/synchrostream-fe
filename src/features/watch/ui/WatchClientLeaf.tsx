@@ -14,7 +14,7 @@ import {
     updatePlaybackSnapshot,
 } from "@/shared/playback-sync/playbackSlice";
 
-import NavbarWrapper from "@/components/commons/NavbarWrapper";
+import { NavbarWrapper } from "@/features/app-shell";
 
 import { createSoloMediaController } from "@/shared/playback-sync/createSoloMediaController";
 

@@ -3,11 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, Avatar, Text, UnstyledButton, Group } from "@mantine/core";
-import {
-    authApi,
-    useGetMeQuery,
-    useLogoutMutation,
-} from "@/store/services/authApi";
+import { authApi, useGetMeQuery, useLogoutMutation } from "@/features/auth";
 import { LoadingPage } from "@/shared/ui/LoadingPage";
 import { createPortal } from "react-dom";
 import { useAppDispatch } from "@/store/hooks";

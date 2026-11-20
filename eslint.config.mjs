@@ -15,13 +15,13 @@ const eslintConfig = defineConfig([
         },
     },
     // Import boundaries (plan "Backend clean architecture and frontend vertical
-    // slices", F0). Warn while the slices are being built (F1–F4); F5 turns
-    // them into errors.
+    // slices"). Errors since F5: features are reached only through their
+    // index or routes entry, and logic never imports UI.
     {
         files: ["src/**/*.{ts,tsx}"],
         rules: {
             "no-restricted-imports": [
-                "warn",
+                "error",
                 {
                     patterns: [
                         {
@@ -50,7 +50,7 @@ const eslintConfig = defineConfig([
         ],
         rules: {
             "no-restricted-imports": [
-                "warn",
+                "error",
                 {
                     patterns: [
                         {
@@ -83,7 +83,7 @@ const eslintConfig = defineConfig([
         files: ["src/core/**/*.{ts,tsx}", "src/shared/**/*.{ts,tsx}"],
         rules: {
             "no-restricted-imports": [
-                "warn",
+                "error",
                 {
                     patterns: [
                         {

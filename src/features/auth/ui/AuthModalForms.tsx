@@ -16,10 +16,10 @@ import {
     useLoginUserMutation,
     useRegisterUserMutation,
     useRequestPasswordResetMutation,
-} from "@/store/services/authApi";
+} from "../api/authApi";
 import { useAppDispatch } from "@/store/hooks";
 import { setCredentials } from "@/shared/session/authSlice";
-import { ApiErrorResponse } from "@/types/api";
+import { ApiErrorResponse } from "../types/api";
 import { useRouter } from "next/navigation";
 import { createLogger } from "@/shared/lib/logger";
 

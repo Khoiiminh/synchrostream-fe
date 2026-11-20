@@ -13,7 +13,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setProfileData } from "@/shared/session/authSlice";
-import { useGetMeQuery } from "@/store/services/authApi";
+import { useGetMeQuery } from "@/features/auth";
 import { DashboardLogoutButton } from "./DashboardLogoutButton";
 
 interface BaseWorkspaceProps {
