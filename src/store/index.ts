@@ -1,7 +1,9 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { authApi } from "./services/authApi";
 import authReducer from "@/shared/session/authSlice";
+import authReducer from "@/shared/session/authSlice";
 import ingestionReducer from "@/store/slices/ingestionSlice";
+import playbackReducer from "@/shared/playback-sync/playbackSlice";
 import playbackReducer from "@/shared/playback-sync/playbackSlice";
 import { adminMediaApi } from "./services/adminMediaApi";
 import { mediaApi } from "@/shared/api/mediaApi";
