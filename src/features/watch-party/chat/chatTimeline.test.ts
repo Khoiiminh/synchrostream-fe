@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ChatMessageBroadcastPayload } from "@/types/watchParty";
+import type { ChatMessageBroadcastPayload } from "../types/watchParty";
 import {
     CHAT_TIMELINE_LIMIT,
     appendPending,

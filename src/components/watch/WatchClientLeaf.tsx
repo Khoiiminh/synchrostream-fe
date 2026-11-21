@@ -13,15 +13,11 @@ import {
     resetPlayback,
     updatePlaybackSnapshot,
 } from "@/shared/playback-sync/playbackSlice";
+} from "@/shared/playback-sync/playbackSlice";
 
 import NavbarWrapper from "../commons/NavbarWrapper";
 
-import { useEngine } from "@/context/EngineContext";
-
-import {
-    createPartyMediaController,
-    createSoloMediaController,
-} from "@/core/sync/createMediaSyncController";
+import { createSoloMediaController } from "@/shared/playback-sync/createSoloMediaController";
 
 import { MediaSyncController } from "@/shared/playback-sync/MediaSyncController";
 import { QualityLevel } from "@/shared/playback-sync/ISyncAdapter";
@@ -35,6 +31,16 @@ interface WatchClientLeafProps {
     mediaId: string;
     isPartyMode: boolean;
 
+    /**
+     * Party mode: builds the party's sync controller for a stream, or null
+     * while the room is not ready. The caller memoizes it; a new function
+     * means a new controller. Without it the player runs solo.
+     */
+    createController?: (streamUrl: string) => MediaSyncController | null;
+
+    /** Party mode: people in the room, for the start hint. */
+    watcherCount?: number;
+
     onControllerAttachmentChange?: (
         controller: MediaSyncController,
         attached: boolean,
@@ -44,12 +50,12 @@ interface WatchClientLeafProps {
 export default function WatchClientLeaf({
     mediaId,
     isPartyMode,
+    createController,
+    watcherCount = 1,
     onControllerAttachmentChange,
 }: WatchClientLeafProps) {
     const router = useRouter();
     const store = useStore();
-
-    const { gatewayEngine } = useEngine();
 
     const [duration, setDuration] = useState(0);
     const [qualityLevels, setQualityLevels] = useState<QualityLevel[]>([]);
@@ -59,10 +65,6 @@ export default function WatchClientLeaf({
     const isPlaying = playbackState?.isPlaying ?? false;
 
     const currentTime = playbackState?.currentTime ?? 0;
-
-    const activeRoom = useAppSelector((state) => state.room.activeRoom);
-
-    const userId = useAppSelector((state) => state.auth.userId);
 
     const cachedCatalogMovie = useAppSelector((state) => {
         const catalogResult =
@@ -84,47 +86,19 @@ export default function WatchClientLeaf({
         streamData?.metadata?.posterUrl ||
         "/spring_poster_pillar_medium.jpg";
 
-    /*
-     * Resolve the current user's party identity from the
-     * already-synchronized room state.
-     */
-    const partyUserId = isPartyMode ? userId : undefined;
-
     const streamUrl = streamData?.streaming?.hlsUrl;
-    const roomId = activeRoom?.roomId;
-    const roomCode = activeRoom?.roomCode;
-    const ownerId = activeRoom?.ownerId;
-    const watcherCount = activeRoom?.members?.length ?? 1;
     const controller = useMemo<MediaSyncController | null>(() => {
         if (!streamUrl) {
             return null;
         }
 
+        // The party owns its controller (it needs the room and the gateway).
         if (isPartyMode) {
-            if (!roomId || !roomCode || !partyUserId || !ownerId) {
-                return null;
-            }
-
-            return createPartyMediaController(store, gatewayEngine, {
-                streamUrl,
-                roomId,
-                roomCode,
-                userId: partyUserId,
-                ownerId,
-            });
+            return createController ? createController(streamUrl) : null;
         }
 
         return createSoloMediaController(store, streamUrl);
-    }, [
-        streamUrl,
-        roomId,
-        roomCode,
-        partyUserId,
-        ownerId,
-        isPartyMode,
-        store,
-        gatewayEngine,
-    ]);
+    }, [streamUrl, isPartyMode, createController, store]);
 
     /*
      * Controller lifetime.

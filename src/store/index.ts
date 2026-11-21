@@ -5,9 +5,11 @@ import ingestionReducer from "@/store/slices/ingestionSlice";
 import playbackReducer from "@/shared/playback-sync/playbackSlice";
 import { adminMediaApi } from "./services/adminMediaApi";
 import { mediaApi } from "./services/mediaApi";
-import roomReducer from "@/store/slices/roomSlice";
-import { watchPartyApi } from "./services/watchPartyApi";
-import { mediaSessionApi } from "./services/mediaSessionApi";
+import {
+    mediaSessionApi,
+    roomReducer,
+    watchPartyApi,
+} from "@/features/watch-party";
 
 /**
  * CENTRAL REDUX SETUP

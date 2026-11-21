@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useMemo, useEffect } from "react";
 import { useStore } from "react-redux";
-import { WatchPartyGatewayEngine } from "@/core/services/WatchPartyGatewayEngine";
+import { WatchPartyGatewayEngine } from "./WatchPartyGatewayEngine";
 
 interface EngineContextLayout {
     gatewayEngine: WatchPartyGatewayEngine;

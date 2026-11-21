@@ -3,7 +3,7 @@ import "@mantine/core/styles.css";
 import "./globals.css";
 import { ColorSchemeScript, MantineProvider, createTheme } from "@mantine/core";
 import { StoreProvider } from "@/store/StoreProvider";
-import { EngineProvider } from "@/context/EngineContext";
+import { EngineProvider } from "@/features/watch-party";
 import { SessionInterceptor } from "@/components/auth/SessionInterceptor";
 
 /**
