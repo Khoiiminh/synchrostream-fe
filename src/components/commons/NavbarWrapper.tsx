@@ -12,11 +12,9 @@ import {
     Modal,
 } from "@mantine/core";
 import { RoomPasswordInput } from "@/shared/ui/RoomPasswordInput";
-import { RoomPasswordInput } from "@/shared/ui/RoomPasswordInput";
 import ProfileMenuClientLeaf from "./ProfileMenuClientLeaf";
 import { useRouter } from "next/navigation";
 import { Hash, KeyRound, LogIn, Users } from "lucide-react";
-import { guardedNavigate } from "@/shared/lib/leaveGuard";
 import { guardedNavigate } from "@/shared/lib/leaveGuard";
 import {
     ROOM_CODE_PATTERN,

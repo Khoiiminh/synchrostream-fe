@@ -25,9 +25,13 @@ const eslintConfig = defineConfig([
                 {
                     patterns: [
                         {
-                            group: ["@/features/*/*", "@/features/*/**"],
+                            group: [
+                                "@/features/*/*",
+                                "@/features/*/**",
+                                "!@/features/*/routes",
+                            ],
                             message:
-                                "Import a feature through its public index (@/features/<name>); inside the feature, use relative imports.",
+                                "Import a feature through its public index (@/features/<name>), or a route page through @/features/<name>/routes; inside the feature, use relative imports.",
                         },
                     ],
                 },
@@ -60,7 +64,11 @@ const eslintConfig = defineConfig([
                                 "Logic must not import UI (components or routes).",
                         },
                         {
-                            group: ["@/features/*/*", "@/features/*/**"],
+                            group: [
+                                "@/features/*/*",
+                                "@/features/*/**",
+                                "!@/features/*/routes",
+                            ],
                             message:
                                 "Import a feature through its public index (@/features/<name>).",
                         },
