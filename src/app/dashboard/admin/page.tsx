@@ -1,6 +1,6 @@
 import { Title } from "@mantine/core";
-import { AdminBaseWorkspace } from "@/components/dashboard/AdminBaseWorkspace";
-import { RequireAuthenticatedSession } from "@/components/auth/RequireAuthenticatedSession";
+import { AdminBaseWorkspace } from "@/features/admin/routes";
+import { RequireAuthenticatedSession } from "@/features/auth";
 
 export const metadata = {
     title: "Admin Command Telemetry | SynchroStream",

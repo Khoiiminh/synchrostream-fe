@@ -1,7 +1,7 @@
 "use client";
 
-import { ApiErrorResponse } from "@/types/api";
-import { useConfirmPasswordResetMutation } from "@/store/services/authApi";
+import { ApiErrorResponse } from "../types/api";
+import { useConfirmPasswordResetMutation } from "../api/authApi";
 import {
     Alert,
     Button,

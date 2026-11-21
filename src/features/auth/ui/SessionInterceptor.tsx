@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useGetMeQuery } from "@/store/services/authApi";
+import { useGetMeQuery } from "../api/authApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
     setProfileData,

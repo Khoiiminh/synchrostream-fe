@@ -1,6 +1,6 @@
 import { Container, Title, Text, Stack } from "@mantine/core";
-import { LandingHeroActions } from "@/components/landing/LandingHeroActions";
-import { HeaderSignInButton } from "@/components/landing/HeaderSignInButton";
+import { LandingHeroActions } from "@/features/landing";
+import { HeaderSignInButton } from "@/features/landing";
 
 export default function Home() {
     return (

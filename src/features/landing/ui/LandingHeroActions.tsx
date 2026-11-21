@@ -2,9 +2,9 @@
 
 import { useDisclosure } from "@mantine/hooks";
 import { Modal, Button, Group, Text, Loader, Alert } from "@mantine/core";
-import { AuthModalForms } from "@/components/auth/AuthModalForms";
+import { AuthModalForms } from "@/features/auth/routes";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useLazyGetMeQuery } from "@/store/services/authApi";
+import { useLazyGetMeQuery } from "@/features/auth";
 import { Suspense, useEffect } from "react";
 
 /** useSearchParams() needs a Suspense boundary so the landing page can be prerendered. */

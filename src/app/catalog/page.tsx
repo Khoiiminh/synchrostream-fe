@@ -1,8 +1,8 @@
 import React from "react";
 import { Container } from "@mantine/core";
-import NavbarWrapper from "@/components/commons/NavbarWrapper";
-import CatalogGridClientLeaf from "@/components/catalog/CatalogGridClientLeaf";
-import { RequireAuthenticatedSession } from "@/components/auth/RequireAuthenticatedSession";
+import { NavbarWrapper } from "@/features/app-shell";
+import { CatalogGridClientLeaf } from "@/features/catalog";
+import { RequireAuthenticatedSession } from "@/features/auth";
 
 export default function CatalogPage() {
     return (

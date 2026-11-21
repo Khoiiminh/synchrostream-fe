@@ -1,7 +1,7 @@
 import React from "react";
-import NavbarWrapper from "@/components/commons/NavbarWrapper";
-import { BaseWorkspace } from "@/components/dashboard/BaseWorkspace";
-import { RequireAuthenticatedSession } from "@/components/auth/RequireAuthenticatedSession";
+import { NavbarWrapper } from "@/features/app-shell";
+import { BaseWorkspace } from "@/features/dashboard";
+import { RequireAuthenticatedSession } from "@/features/auth";
 
 export default function UserDashboardPage() {
     return (
