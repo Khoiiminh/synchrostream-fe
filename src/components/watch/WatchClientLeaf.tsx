@@ -13,6 +13,7 @@ import {
     resetPlayback,
     updatePlaybackSnapshot,
 } from "@/shared/playback-sync/playbackSlice";
+} from "@/shared/playback-sync/playbackSlice";
 
 import NavbarWrapper from "../commons/NavbarWrapper";
 
