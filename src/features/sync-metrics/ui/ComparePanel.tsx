@@ -21,7 +21,7 @@ import {
     DEFAULT_ANALYSIS_OPTIONS,
     keyMetrics,
     Rec,
-} from "@/diagnostics/analysis/syncRunAnalysis";
+} from "../analysis/syncRunAnalysis";
 import { CdfChart, ChartCard, CompareBars } from "./charts";
 import {
     downloadText,
@@ -29,9 +29,9 @@ import {
     summaryCsv,
     summaryLatex,
     summaryMarkdown,
-} from "@/utils/syncMetricsExport";
-import { fmtMetric, RUN_COLORS } from "@/utils/syncMetricsFormat";
-import { syncMetricsClient } from "@/store/services/syncMetricsClient";
+} from "../analysis/syncMetricsExport";
+import { fmtMetric, RUN_COLORS } from "../analysis/syncMetricsFormat";
+import { syncMetricsClient } from "../api/syncMetricsClient";
 
 export function ComparePanel({
     runIds,

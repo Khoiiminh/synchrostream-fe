@@ -1,4 +1,4 @@
-import type { Rec } from "@/diagnostics/analysis/syncRunAnalysis";
+import type { Rec } from "../analysis/syncRunAnalysis";
 
 /** Mirrors SyncRunSummary in synchrostream-backend/src/modules/sync-metrics. */
 export interface SyncRunSummary {

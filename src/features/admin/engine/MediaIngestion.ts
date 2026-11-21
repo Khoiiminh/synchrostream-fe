@@ -1,12 +1,12 @@
 // src/core/engines/MediaIngestion.ts
-import { AppDispatch } from "@/store";
+import type { AppDispatch } from "@/store";
 import {
     setUploadStep,
     setChunkProgress,
     setEngineError,
     setEngineSuccess,
     IngestionStep,
-} from "@/store/slices/ingestionSlice";
+} from "../model/ingestionSlice";
 import {
     InitiateUploadPayload,
     NestResponse,
@@ -14,7 +14,7 @@ import {
     UploadPartResponseData,
     CompleteUploadPayload,
     CompleteUploadResponseData,
-} from "@/types/ingestion";
+} from "../types/ingestion";
 
 interface ApiError {
     data?: { message?: string };

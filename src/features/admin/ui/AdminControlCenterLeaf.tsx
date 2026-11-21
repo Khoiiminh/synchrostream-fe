@@ -12,12 +12,9 @@ import {
     useInitiateUploadMutation,
     useUploadPartMutation,
     useCompleteUploadMutation,
-} from "@/store/services/adminMediaApi"; // Removed useTriggerTranscodeMutation
-import { MediaIngestionClient } from "@/core/services/MediaIngestion";
-import {
-    IngestionStep,
-    resetIngestionEngine,
-} from "@/store/slices/ingestionSlice";
+} from "../api/adminMediaApi"; // Removed useTriggerTranscodeMutation
+import { MediaIngestionClient } from "../engine/MediaIngestion";
+import { IngestionStep, resetIngestionEngine } from "../model/ingestionSlice";
 import { useForm } from "@mantine/form";
 import {
     Stack,
@@ -46,7 +43,7 @@ import {
     IconServer,
     IconActivity,
 } from "@tabler/icons-react";
-import { SyncMetricsWorkspace } from "./sync-metrics/SyncMetricsWorkspace";
+import { SyncMetricsWorkspace } from "@/features/sync-metrics";
 import { io, Socket } from "socket.io-client";
 import { LoadingPage } from "@/shared/ui/LoadingPage";
 import { createPortal } from "react-dom";
@@ -55,7 +52,7 @@ import { createLogger } from "@/shared/lib/logger";
 import type {
     CloudTranscodeStatus,
     MovieStatusChangedPayload,
-} from "@/types/media";
+} from "../types/media";
 
 const log = createLogger("AdminControlCenter");
 

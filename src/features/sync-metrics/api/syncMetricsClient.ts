@@ -2,7 +2,7 @@ import type {
     SyncRunMeta,
     SyncRunPayload,
     SyncRunSummary,
-} from "@/types/syncMetrics";
+} from "../types/syncMetrics";
 
 /** Same-origin path; next.config rewrites /v1/* to the backend. */
 const BASE = "/v1/sync-metrics";

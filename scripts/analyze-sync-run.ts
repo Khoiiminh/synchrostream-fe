@@ -34,7 +34,7 @@ import {
     formatTextReport,
     parseInputText,
     Rec,
-} from "../src/diagnostics/analysis/syncRunAnalysis";
+} from "../src/features/sync-metrics/analysis/syncRunAnalysis";
 
 const argv = process.argv.slice(2);
 const inputs: string[] = [];

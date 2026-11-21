@@ -1,6 +1,6 @@
 "use client";
 
-import { AdminControlCenterLeaf } from "@/components/admin/AdminControlCenterLeaf";
+import { AdminControlCenterLeaf } from "@/features/admin/routes";
 import { Text, Center, Stack, Title } from "@mantine/core";
 import { IconAlertTriangle } from "@tabler/icons-react";
 

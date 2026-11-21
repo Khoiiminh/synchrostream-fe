@@ -1,8 +1,5 @@
-import {
-    AnalysisResult,
-    keyMetrics,
-} from "@/diagnostics/analysis/syncRunAnalysis";
-import { fmtMetric } from "@/utils/syncMetricsFormat";
+import { AnalysisResult, keyMetrics } from "./syncRunAnalysis";
+import { fmtMetric } from "./syncMetricsFormat";
 
 export function downloadText(
     content: string,

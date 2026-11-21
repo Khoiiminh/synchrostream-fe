@@ -22,7 +22,7 @@ import {
     XAxis,
     YAxis,
 } from "recharts";
-import type { AnalysisResult } from "@/diagnostics/analysis/syncRunAnalysis";
+import type { AnalysisResult } from "../analysis/syncRunAnalysis";
 import {
     ACTION_COLORS,
     AXIS,
@@ -31,8 +31,8 @@ import {
     GRID,
     RUN_COLORS,
     TOOLTIP_STYLE,
-} from "@/utils/syncMetricsFormat";
-import { exportChartPng, exportChartSvg } from "@/utils/syncMetricsExport";
+} from "../analysis/syncMetricsFormat";
+import { exportChartPng, exportChartSvg } from "../analysis/syncMetricsExport";
 
 // ---------------------------------------------------------------- frame
 
